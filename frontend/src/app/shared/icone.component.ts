@@ -1,0 +1,43 @@
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+
+/** Icônes SVG en ligne (aucune dépendance externe, fonctionne hors ligne). */
+const CHEMINS: Record<string, string> = {
+  nouvelle: 'M12 5v14M5 12h14',
+  historique: 'M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5m4-1v5l3 2',
+  tableau: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',
+  parametres: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7.6 7.6 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1c.6.5 1.3.9 2 1.2l.4 2.6h5l.4-2.6c.7-.3 1.4-.7 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z',
+  utilisateurs: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm13 10v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
+  prompt: 'M4 17l6-6-6-6M12 19h8',
+  deconnexion: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  import: 'M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
+  relancer: 'M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5',
+  export: 'M12 15V3m0 12l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
+  copier: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  check: 'M20 6L9 17l-5-5',
+  drapeau: 'M4 22V4m0 0h13l-2 4 2 4H4',
+  pouce: 'M7 22V11M2 13v7a2 2 0 0 0 2 2h12.4a2 2 0 0 0 2-1.7l1.4-7A2 2 0 0 0 17.8 11H14V6a3 3 0 0 0-3-3l-4 8',
+  fleche: 'M5 12h14M13 6l6 6-6 6',
+  retour: 'M19 12H5M11 18l-6-6 6-6',
+  poubelle: 'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15',
+  menu: 'M3 6h18M3 12h18M3 18h18',
+  etoile: 'M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z',
+  ampoule: 'M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z',
+  recherche: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm10 2l-4.3-4.3',
+  bouclier: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  cle: 'M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4',
+  oeil: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12zm11 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+};
+
+@Component({
+  selector: 'app-icone',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<svg [attr.width]="taille()" [attr.height]="taille()" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="chemins[nom()]" /></svg>`,
+  styles: [':host{display:inline-flex;flex-shrink:0}'],
+})
+export class IconeComponent {
+  readonly nom = input.required<string>();
+  readonly taille = input(16);
+  readonly chemins = CHEMINS;
+}

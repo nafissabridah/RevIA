@@ -1,0 +1,28 @@
+{
+  "description": "Jeu d'essai IA de la présentation (diapo 15) : 20 extraits avec un défaut connu à l'avance + 3 extraits sains témoins.",
+  "extraits": [
+    {"fichier": "01_UserService.java", "titre": "UserService – recherche utilisateur", "langage": "java", "type": "Injection SQL", "attendu": "Injection SQL", "ligne": 8},
+    {"fichier": "02_sql_produits.php", "titre": "ProductRepository.php", "langage": "php", "type": "Injection SQL", "attendu": "Injection SQL", "ligne": 4},
+    {"fichier": "03_sql_commandes.py", "titre": "commandes.py", "langage": "python", "type": "Injection SQL", "attendu": "Injection SQL", "ligne": 6},
+    {"fichier": "04_sql_auth.py", "titre": "auth.py", "langage": "python", "type": "Injection SQL", "attendu": "Injection SQL", "ligne": 3},
+    {"fichier": "05_secret_Mailer.java", "titre": "Mailer.java", "langage": "java", "type": "Secrets en dur", "attendu": "Mot de passe en dur", "ligne": 2},
+    {"fichier": "06_secret_paiement.js", "titre": "paiement.js", "langage": "javascript", "type": "Secrets en dur", "attendu": "Secret en dur dans le code", "ligne": 3},
+    {"fichier": "07_secret_meteo.py", "titre": "meteo.py", "langage": "python", "type": "Secrets en dur", "attendu": "Secret en dur dans le code", "ligne": 3},
+    {"fichier": "08_ressource_RapportDao.java", "titre": "RapportDao.java", "langage": "java", "type": "Ressources non fermées", "attendu": "Ressources non fermées", "ligne": 3},
+    {"fichier": "09_ressource_Import.java", "titre": "ImportCsv.java", "langage": "java", "type": "Ressources non fermées", "attendu": "Ressources non fermées", "ligne": 3},
+    {"fichier": "10_ressource_journal.c", "titre": "journal.c", "langage": "c", "type": "Ressources non fermées", "attendu": "Ressources non fermées", "ligne": 4},
+    {"fichier": "11_bornes_notes.c", "titre": "calcul_notes.c", "langage": "c", "type": "Erreurs de bornes", "attendu": "Dépassement d'indice dans la boucle", "ligne": 7},
+    {"fichier": "12_bornes_Panier.java", "titre": "PanierService.java", "langage": "java", "type": "Erreurs de bornes", "attendu": "Dépassement d'indice dans la boucle", "ligne": 6},
+    {"fichier": "13_bornes_inverse.py", "titre": "upload_handler.py", "langage": "python", "type": "Erreurs de bornes", "attendu": "Dépassement d'indice dans la boucle", "ligne": 3},
+    {"fichier": "14_bornes_majuscules.c", "titre": "majuscules.c", "langage": "c", "type": "Erreurs de bornes", "attendu": "Dépassement d'indice dans la boucle", "ligne": 5},
+    {"fichier": "15_xss_commentaires.js", "titre": "commentaires.js", "langage": "javascript", "type": "XSS", "attendu": "Faille XSS", "ligne": 3},
+    {"fichier": "16_xss_recherche.ts", "titre": "recherche.ts", "langage": "typescript", "type": "XSS", "attendu": "Faille XSS", "ligne": 3},
+    {"fichier": "17_xss_bonjour.php", "titre": "bonjour.php", "langage": "php", "type": "XSS", "attendu": "Faille XSS", "ligne": 3},
+    {"fichier": "18_null_Profil.java", "titre": "ProfilService.java", "langage": "java", "type": "Autres (null, division…)", "attendu": "Déréférencement possible de null", "ligne": 6},
+    {"fichier": "19_division_stats.js", "titre": "utils/stats.js", "langage": "javascript", "type": "Autres (null, division…)", "attendu": "Division par zéro possible", "ligne": 6},
+    {"fichier": "20_comparaison_Role.java", "titre": "Autorisation.java", "langage": "java", "type": "Autres (null, division…)", "attendu": "Comparaison de chaînes avec ==", "ligne": 4},
+    {"fichier": "21_sain_ClientRepository.java", "titre": "ClientRepository.java", "langage": "java", "type": "Extraits sains (témoins)", "attendu": null, "ligne": null},
+    {"fichier": "22_sain_panier.js", "titre": "panier.js", "langage": "javascript", "type": "Extraits sains (témoins)", "attendu": null, "ligne": null},
+    {"fichier": "23_sain_notes.py", "titre": "notes.py", "langage": "python", "type": "Extraits sains (témoins)", "attendu": null, "ligne": null}
+  ]
+}

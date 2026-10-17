@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:revia-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+revia:
+  ai:
+    provider: demo
+  security:
+    jwt-secret: test-secret-revia-0123456789-abcdefghijklmnop
+  quotas:
+    analyses-par-minute: 1000
+    connexions-par-minute: 1000
+  admin:
+    password: Admin2026!
+  seed-demo-data: false
+
+logging:
+  level:
+    com.revia: WARN

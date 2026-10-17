@@ -1,0 +1,14 @@
+# Profil dev : base H2 sur disque (aucune installation), données de démonstration, fournisseur demo par défaut.
+spring:
+  datasource:
+    url: jdbc:h2:file:${REVIA_DATA_DIR:./data}/revia-dev;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;AUTO_SERVER=FALSE
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: false
+
+revia:
+  seed-demo-data: true
+  cors:
+    allowed-origins: http://localhost:4200,http://127.0.0.1:4200,http://localhost:8085

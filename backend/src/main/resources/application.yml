@@ -1,0 +1,97 @@
+# =====================================================================
+#  RevIA - configuration commune (surchargée par application-dev.yml / application-prod.yml)
+#  Toutes les valeurs sensibles viennent de variables d'environnement.
+# =====================================================================
+spring:
+  application:
+    name: revia
+  profiles:
+    default: dev
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # le schéma est géré par Flyway (db/migration)
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: always
+  servlet:
+    multipart:
+      enabled: false
+  threads:
+    virtual:
+      enabled: false
+
+server:
+  port: ${PORT:8085}
+  error:
+    include-message: never
+    include-stacktrace: never
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/css,application/javascript,text/csv
+  tomcat:
+    max-http-form-post-size: 1MB
+    max-swallow-size: 2MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: true
+
+info:
+  application: RevIA
+  version: ${revia.version}
+
+revia:
+  version: 1.0.0
+  ai:
+    # groq | gemini | ollama (gratuits) · openai | anthropic (payants) · demo (analyseur à règles local, sans clé)
+    provider: ${REVIA_AI_PROVIDER:demo}
+    # Modèle choisi ici (ex. gpt-4o-mini, gpt-4.1, claude-sonnet-5-5...) ; vide = modèle par défaut du fournisseur
+    model: ${REVIA_AI_MODEL:}
+    # La clé ne quitte jamais le serveur : variable d'environnement uniquement
+    api-key: ${REVIA_AI_API_KEY:${OPENAI_API_KEY:${ANTHROPIC_API_KEY:}}}
+    base-url: ${REVIA_AI_BASE_URL:}
+    temperature: 0.2
+    timeout-sec: ${REVIA_AI_TIMEOUT:30}   # 30 s (présentation) ; à augmenter pour un modèle local sur CPU
+    max-tokens: 4096
+    max-lines: 2000
+    chunk-lines: 300
+    json-retries: 1
+    prompt-resource: classpath:prompts/revue-system.st
+  security:
+    jwt-secret: ${REVIA_JWT_SECRET:}
+    jwt-minutes: ${REVIA_JWT_MINUTES:120}
+  quotas:
+    revues-par-jour: ${REVIA_QUOTA_JOUR:50}
+    analyses-par-minute: ${REVIA_ANALYSES_MINUTE:10}
+    connexions-par-minute: ${REVIA_CONNEXIONS_MINUTE:10}
+  admin:
+    email: ${REVIA_ADMIN_EMAIL:admin@revia.local}
+    password: ${REVIA_ADMIN_PASSWORD:}
+    nom: Administrateur RevIA
+  cors:
+    allowed-origins: ${REVIA_CORS_ORIGINS:http://localhost:4200}
+  seed-demo-data: false
+
+logging:
+  level:
+    root: INFO
+    com.revia: INFO
+    org.hibernate.SQL: WARN

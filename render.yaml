@@ -1,0 +1,38 @@
+# Render (blueprint) : back-end Spring Boot + PostgreSQL managé.
+# Le front-end Angular est déployé sur Vercel (voir frontend/vercel.json).
+services:
+  - type: web
+    name: revia-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_HOST
+        fromDatabase: { name: revia-db, property: host }
+      - key: DATABASE_PORT
+        fromDatabase: { name: revia-db, property: port }
+      - key: DATABASE_NAME
+        fromDatabase: { name: revia-db, property: database }
+      - key: DATABASE_USER
+        fromDatabase: { name: revia-db, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: revia-db, property: password }
+      - key: REVIA_JWT_SECRET
+        generateValue: true
+      - key: REVIA_ADMIN_PASSWORD
+        sync: false
+      - key: REVIA_AI_PROVIDER
+        value: gemini        # gratuit (aistudio.google.com) ; groq aussi possible
+      - key: REVIA_AI_API_KEY
+        sync: false          # clé Gemini saisie dans le tableau de bord Render, jamais dans le code
+      - key: REVIA_CORS_ORIGINS
+        value: https://revia.vercel.app
+
+databases:
+  - name: revia-db
+    plan: free
+    databaseName: revia
+    user: revia

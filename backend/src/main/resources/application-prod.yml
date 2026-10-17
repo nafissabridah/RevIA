@@ -1,0 +1,21 @@
+# Profil prod : PostgreSQL, secrets obligatoires (REVIA_JWT_SECRET, REVIA_ADMIN_PASSWORD, clé LLM).
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_NAME:revia}}
+    username: ${DATABASE_USER:revia}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL:10}
+      connection-timeout: 10000
+
+server:
+  forward-headers-strategy: native   # derrière Render / un proxy : vraie IP client pour la limitation de débit
+
+revia:
+  ai:
+    provider: ${REVIA_AI_PROVIDER:gemini}
+  seed-demo-data: false
+
+logging:
+  level:
+    com.revia: INFO

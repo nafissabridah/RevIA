@@ -1,0 +1,49 @@
+# RevIA en production locale : PostgreSQL + Spring Boot + Angular (nginx)
+#   cp .env.example .env   (puis renseigner les secrets)
+#   docker compose up -d --build      ->  http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: revia
+      POSTGRES_USER: revia
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD obligatoire}
+    volumes:
+      - revia-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revia -d revia"]
+      interval: 5s
+      retries: 10
+    # Pas de port publié : la base n'est joignable que par le back-end (aucun conflit avec un PostgreSQL local)
+
+  backend:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://db:5432/revia
+      DATABASE_USER: revia
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      REVIA_JWT_SECRET: ${REVIA_JWT_SECRET:?REVIA_JWT_SECRET obligatoire (32 caractères min.)}
+      REVIA_ADMIN_EMAIL: ${REVIA_ADMIN_EMAIL:-admin@revia.local}
+      REVIA_ADMIN_PASSWORD: ${REVIA_ADMIN_PASSWORD:?REVIA_ADMIN_PASSWORD obligatoire}
+      REVIA_AI_PROVIDER: ${REVIA_AI_PROVIDER:-gemini}
+      REVIA_AI_MODEL: ${REVIA_AI_MODEL:-}
+      REVIA_AI_API_KEY: ${REVIA_AI_API_KEY:-}
+      REVIA_AI_BASE_URL: ${REVIA_AI_BASE_URL:-}   # Ollama sur la machine : http://host.docker.internal:11434
+      REVIA_AI_TIMEOUT: ${REVIA_AI_TIMEOUT:-30}
+      REVIA_CORS_ORIGINS: ${REVIA_CORS_ORIGINS:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  revia-db:

@@ -1,0 +1,14 @@
+# Back-end
+backend/target/
+backend/data/
+backend/src/main/resources/static/
+# Front-end
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+# Secrets et fichiers locaux
+.env
+*.log
+.idea/
+.vscode/
+*.iml

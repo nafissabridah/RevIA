@@ -1,0 +1,105 @@
+package com.revia.web.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+/** Objets échangés en JSON avec le front-end Angular (requêtes validées par Bean Validation). */
+public final class Dtos {
+
+    private Dtos() {
+    }
+
+    // ---------- Authentification / profil
+    public record InscriptionRequest(
+            @NotBlank(message = "Le nom est obligatoire.") @Size(min = 2, max = 80, message = "Le nom doit faire entre 2 et 80 caractères.") String nom,
+            @NotBlank(message = "L'e-mail est obligatoire.") @Email(message = "E-mail invalide.") @Size(max = 160) String email,
+            @NotBlank(message = "Le mot de passe est obligatoire.")
+            @Size(min = 8, max = 72, message = "Le mot de passe doit faire entre 8 et 72 caractères.")
+            @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Le mot de passe doit contenir au moins une lettre et un chiffre.")
+            String motDePasse) {
+    }
+
+    public record ConnexionRequest(
+            @NotBlank(message = "L'e-mail est obligatoire.") @Email(message = "E-mail invalide.") String email,
+            @NotBlank(message = "Le mot de passe est obligatoire.") @Size(max = 72) String motDePasse) {
+    }
+
+    public record AuthResponse(String token, long expireDansSecondes, UtilisateurDto utilisateur) {
+    }
+
+    public record UtilisateurDto(Long id, String nom, String email, String role, Integer quotaJournalier,
+                                 Integer revuesDuJour, boolean bloque, LocalDateTime creeLe, Long nbRevues) {
+    }
+
+    public record ProfilRequest(
+            @NotBlank(message = "Le nom est obligatoire.") @Size(min = 2, max = 80, message = "Le nom doit faire entre 2 et 80 caractères.") String nom) {
+    }
+
+    public record MotDePasseRequest(
+            @NotBlank(message = "Saisissez votre mot de passe actuel.") String ancien,
+            @NotBlank @Size(min = 8, max = 72, message = "Le mot de passe doit faire entre 8 et 72 caractères.")
+            @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Le mot de passe doit contenir au moins une lettre et un chiffre.")
+            String nouveau) {
+    }
+
+    // ---------- Revues
+    public record RevueRequest(
+            @Size(max = 160, message = "Le titre est limité à 160 caractères.") String titre,
+            @Size(max = 20) String langage,
+            @NotBlank(message = "Collez entre 1 et 2 000 lignes de code.")
+            @Size(max = 200_000, message = "Collez entre 1 et 2 000 lignes de code.") String code,
+            @Pattern(regexp = "complet|securite|qualite", message = "Mode inconnu.") String mode) {
+    }
+
+    public record RevueResume(Long id, String titre, String langage, LocalDateTime creeLe, int score,
+                              long nbProblemes, long nbCritiques, String statut) {
+    }
+
+    public record RevueDetail(Long id, String titre, String langage, String code, int score, String resume, String mode,
+                              LocalDateTime creeLe, long dureeMs, String fournisseur, String modele, String promptVersion,
+                              int nbLignes, int nbMasquages, int problemesRejetes, String statut,
+                              Map<String, Long> parGravite, Map<String, Long> parCategorie, List<ProblemeDto> problemes) {
+    }
+
+    public record ProblemeDto(Long id, int ligne, String categorie, String gravite, String titre, String explication,
+                              String owasp, boolean fauxPositif, boolean corrige, Boolean utile,
+                              CorrectionDto correction, long occurrencesPrecedentes) {
+    }
+
+    public record CorrectionDto(String codeAvant, String codeApres, String justification, boolean copiee) {
+    }
+
+    public record BooleenRequest(@NotNull Boolean valeur) {
+    }
+
+    public record CopieResponse(String code) {
+    }
+
+    public record PageDto<T>(List<T> contenu, int page, int taille, long total, int pages) {
+    }
+
+    // ---------- Administration
+    public record QuotaRequest(@Min(value = 0, message = "Le quota doit être positif.") @Max(value = 10_000, message = "Quota maximum : 10 000.") int quota) {
+    }
+
+    public record PromptRequest(
+            @NotBlank @Size(max = 20) @Pattern(regexp = "[A-Za-z0-9._-]+", message = "Version : lettres, chiffres, . _ - uniquement.") String version,
+            @NotBlank @Size(max = 20_000) String contenu) {
+    }
+
+    public record PromptDto(Long id, String version, String contenu, boolean actif, LocalDateTime creeLe) {
+    }
+
+    public record SystemeInfo(String application, String version, String fournisseur, String modele, boolean disponible,
+                              double temperature, int timeoutSec, int quotaParDefaut, int maxLignes) {
+    }
+}
