@@ -112,11 +112,23 @@ export interface TableauDeBord {
   evolution: { jour: string; scoreMoyenJour: number; moyenneGlissante: number; nbRevues: number }[];
 }
 
+export interface JetonApi {
+  id: number;
+  nom: string;
+  apercu: string;
+  creeLe: string;
+  dernierUsage: string | null;
+}
+
 export interface SystemeInfo {
+  essaiActif?: boolean;
+  essaiMaxLignes?: number;
   application: string;
   version: string;
   fournisseur: string;
   modele: string;
+  /** Chaîne de relais des fournisseurs (« gemini/gemini-flash-lite-latest », …). */
+  chaine?: string[];
   disponible: boolean;
   temperature: number;
   timeoutSec: number;
@@ -130,6 +142,49 @@ export interface PromptSysteme {
   contenu: string;
   actif: boolean;
   creeLe: string;
+}
+
+export type OutilIA = 'tests' | 'documentation' | 'explication' | 'commit' | 'refactoring' | 'conversion'
+  | 'cas-de-test' | 'e2e' | 'tests-api' | 'rapport-bug' | 'analyse-logs' | 'donnees-test' | 'revue-tests';
+
+export interface MessageChat {
+  role: 'utilisateur' | 'assistant';
+  contenu: string;
+}
+
+export interface AssistantReponse {
+  contenu: string;
+  outil: OutilIA | 'chat';
+  langage: string | null;
+  nbMasquages: number;
+  dureeMs: number;
+  fournisseur: string;
+  modele: string;
+}
+
+/** Couverture des critères d'acceptation : la PR remplit-elle la user story ? */
+export type StatutCritere = 'couvert' | 'partiel' | 'non_couvert';
+
+export interface CritereVerifie {
+  id: string;
+  texte: string;
+  statut: StatutCritere;
+  explication: string;
+  preuves: string[];
+  testManquant: string | null;
+}
+
+export interface CouvertureCriteres {
+  criteres: CritereVerifie[];
+  couverture: number;
+  nbCouverts: number;
+  nbPartiels: number;
+  nbNonCouverts: number;
+  resume: string;
+  nbMasquages: number;
+  dureeMs: number;
+  fournisseur: string;
+  modele: string;
 }
 
 export interface ErreurApi {

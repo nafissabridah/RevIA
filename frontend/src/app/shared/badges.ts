@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { TPipe } from '../core/i18n';
 import { CATEGORIES, GRAVITES, STATUTS } from '../core/libelles';
 import { Categorie, Gravite, Statut } from '../core/models';
 
 @Component({
   selector: 'app-gravite',
   standalone: true,
+  imports: [TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span class="badge gravite" [class]="'g-' + valeur()"><span class="point"></span>{{ libelles[valeur()] }}</span>`,
+  template: `<span class="badge gravite" [class]="'g-' + valeur()"><span class="point"></span>{{ libelles[valeur()] | t }}</span>`,
 })
 export class GraviteBadgeComponent {
   readonly valeur = input.required<Gravite>();
@@ -16,8 +18,9 @@ export class GraviteBadgeComponent {
 @Component({
   selector: 'app-categorie',
   standalone: true,
+  imports: [TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span class="badge neutre">{{ libelles[valeur()] }}</span>`,
+  template: `<span class="badge neutre">{{ libelles[valeur()] | t }}</span>`,
 })
 export class CategorieBadgeComponent {
   readonly valeur = input.required<Categorie>();
@@ -27,8 +30,9 @@ export class CategorieBadgeComponent {
 @Component({
   selector: 'app-statut',
   standalone: true,
+  imports: [TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span class="badge statut" [class]="'s-' + valeur()">@if (valeur() === 'corrigee') {✓ }{{ libelles[valeur()] }}</span>`,
+  template: `<span class="badge statut" [class]="'s-' + valeur()">@if (valeur() === 'corrigee') {✓ }{{ libelles[valeur()] | t }}</span>`,
 })
 export class StatutBadgeComponent {
   readonly valeur = input.required<Statut>();

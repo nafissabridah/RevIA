@@ -48,8 +48,19 @@ public class JwtService {
         if (octets.length < 32) {
             throw new IllegalStateException("REVIA_JWT_SECRET doit faire au moins 32 caractères.");
         }
+        if (Arrays.asList(env.getActiveProfiles()).contains("prod") && exemple(secret)) {
+            throw new IllegalStateException("REVIA_JWT_SECRET est la valeur d'exemple de .env.example : "
+                    + "générez un vrai secret (openssl rand -base64 48), sinon n'importe qui peut forger un jeton admin.");
+        }
         this.cle = Keys.hmacShaKeyFor(octets);
         this.minutes = props.security().jwtMinutes();
+    }
+
+    /** Valeurs d'exemple publiées (documentation, .env.example) : refusées en production. */
+    public static boolean exemple(String valeur) {
+        String v = valeur.toLowerCase(java.util.Locale.ROOT);
+        return v.contains("remplacez") || v.contains("changez") || v.contains("changeme") || v.contains("change-me")
+                || v.contains("example") || v.contains("your-secret") || v.contains("secret-revia");
     }
 
     public String generer(Utilisateur u) {

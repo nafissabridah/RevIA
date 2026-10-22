@@ -1,0 +1,20 @@
+# Include in .gitlab-ci.yml:   include: { local: '.gitlab-ci.revia.yml' }
+# CI/CD variables: REVIA_URL, REVIA_TOKEN (masked).
+# Optional: GITLAB_TOKEN (project access token, scope "api") to post one summary note on the merge request,
+#           REVIA_LANG (en, fr, es, de, pt, it, nl, pl, tr, ar, ru, hi, zh, ja, ko), REVIA_MIN_SCORE (default 70),
+#           REVIA_MIN_AC_COVERAGE (acceptance criteria of the MR description, default 0 = report only),
+#           REVIA_PROVEN_TESTS=true + REVIA_TEST_CMD (use an image with your test toolchain instead of python:alpine).
+revia-review:
+  stage: test
+  image: python:3.12-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  before_script:
+    - apk add --no-cache git
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=200
+  script:
+    - wget -qO revia_ci.py https://raw.githubusercontent.com/nafissabridah/RevIA/main/integrations/revia_ci.py
+    - python3 revia_ci.py
+  artifacts:
+    when: always
+    paths: [revia.sarif, "tests/test_revia_*.py", "**/*.revia.test.*", "**/*ReviaTest.java"]   # SARIF + proven tests

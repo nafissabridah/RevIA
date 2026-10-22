@@ -88,28 +88,63 @@ public class RevueService {
 
         Long id = tx.execute(status -> {
             Developpeur d = developpeur(userId);
-            Revue r = d.soumettreCode(titre, langage, code, mode);
-            r.setResume(res.resume());
-            r.setDureeMs(res.dureeMs());
-            r.setFournisseur(res.fournisseur());
-            r.setModele(res.modele());
-            r.setPromptVersion(res.promptVersion());
-            r.setNbMasquages(res.nbMasquages());
-            r.setProblemesRejetes(res.problemesRejetes());
-            for (AnalyseurIA.ProblemeValide p : res.problemes()) {
-                Probleme pb = new Probleme(p.ligne(), p.categorie(), p.gravite(), p.titre(), p.explication(), p.owasp());
-                if (p.codeApres() != null && !(p.codeAvant().isBlank() && p.codeApres().isBlank())) {
-                    pb.proposer(new Correction(p.codeAvant(), p.codeApres(),
-                            p.justification() == null || p.justification().isBlank() ? "Correction proposée par l'IA." : p.justification()));
-                }
-                r.ajouterProbleme(pb);
-            }
-            r.calculerScore();
+            Revue r = construire(d, titre, langage, code, mode, res);
             return revues.save(r).getId();
         });
         log.info("Revue {} créée par l'utilisateur {} : {} problème(s), {} ms, {} masquage(s)", id, userId,
                 res.problemes().size(), res.dureeMs(), res.nbMasquages());
         return detail(userId, id);
+    }
+
+    /** Construit une revue (non enregistrée) à partir du résultat validé de l'analyse. */
+    static Revue construire(Developpeur auteur, String titre, String langage, String code, String mode,
+                            AnalyseurIA.Resultat res) {
+        Revue r = new Revue(auteur, titre, langage, code, mode);
+        r.setResume(res.resume());
+        r.setDureeMs(res.dureeMs());
+        r.setFournisseur(res.fournisseur());
+        r.setModele(res.modele());
+        r.setPromptVersion(res.promptVersion());
+        r.setNbMasquages(res.nbMasquages());
+        r.setProblemesRejetes(res.problemesRejetes());
+        for (AnalyseurIA.ProblemeValide p : res.problemes()) {
+            Probleme pb = new Probleme(p.ligne(), p.categorie(), p.gravite(), p.titre(), p.explication(), p.owasp());
+            if (p.codeApres() != null && !(p.codeAvant().isBlank() && p.codeApres().isBlank())) {
+                pb.proposer(new Correction(p.codeAvant(), p.codeApres(),
+                        p.justification() == null || p.justification().isBlank() ? "Correction proposée par l'IA." : p.justification()));
+            }
+            r.ajouterProbleme(pb);
+        }
+        r.calculerScore();
+        return r;
+    }
+
+    /**
+     * Essai public sans compte (page d'accueil) : même analyse, rien n'est enregistré.
+     * Taille limitée pour maîtriser le coût ; le débit par adresse IP est limité par RateLimitFilter.
+     */
+    public Dtos.RevueDetail essayer(Dtos.EssaiRequest req) {
+        String code = req.code().replace("\r\n", "\n").replace('\r', '\n');
+        int nbLignes = PreparateurCode.lignes(code).size();
+        int max = props.essai().maxLignes();
+        if (code.isBlank() || nbLignes > max) {
+            throw new ApiException(ErrorCode.CODE_LONGUEUR,
+                    "L'essai gratuit est limité à " + max + " lignes. Créez un compte gratuit pour analyser jusqu'à "
+                            + props.ai().maxLines() + " lignes.");
+        }
+        String langage = preparateur.detecterLangage(req.langage(), req.titre(), code);
+        String titre = req.titre() == null || req.titre().isBlank() ? titreParDefaut(code, langage) : req.titre().trim();
+        AnalyseurIA.Resultat res = analyseur.analyser(code, langage, "complet");
+        Revue r = construire(null, titre, langage, code, "complet", res);
+        log.info("Essai public : {} ligne(s), {} problème(s), {} ms", nbLignes, res.problemes().size(), res.dureeMs());
+        return Mapper.detail(r, p -> 0L);
+    }
+
+    /** Rapport SARIF 2.1.0 d'une revue (GitHub code scanning, GitLab, Azure DevOps, SonarQube…). */
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> sarif(Long userId, Long id, String version) {
+        Revue r = revues.findByIdAndAuteurId(id, userId).orElseThrow(() -> new ApiException(ErrorCode.INTROUVABLE, "Revue introuvable."));
+        return SarifService.rapport(r, version);
     }
 
     @Transactional(readOnly = true)

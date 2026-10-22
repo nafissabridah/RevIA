@@ -50,6 +50,9 @@ public class AnalyseurStatique implements LlmClient {
 
     @Override
     public String completer(String promptSysteme, String messageUtilisateur) {
+        if (promptSysteme.startsWith(VerificateurCriteres.OUTIL)) {
+            return VerificateurCriteres.demo(messageUtilisateur);
+        }
         Map<Integer, String> lignes = new LinkedHashMap<>();
         for (String l : messageUtilisateur.split("\\R")) {
             Matcher m = LIGNE_NUMEROTEE.matcher(l);
@@ -87,6 +90,12 @@ public class AnalyseurStatique implements LlmClient {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** Assistant et outils IA en mode démo : réponses par gabarits, sans LLM (voir {@link AssistantDemo}). */
+    @Override
+    public String rediger(String promptSysteme, String messageUtilisateur) {
+        return AssistantDemo.repondre(promptSysteme, messageUtilisateur);
     }
 
     private static String trouver(Pattern p, String texte, String defaut) {

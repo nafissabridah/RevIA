@@ -9,6 +9,7 @@ import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
 import { CATEGORIES } from '../../core/libelles';
 import { Categorie, TableauDeBord } from '../../core/models';
+import { TPipe, tr } from '../../core/i18n';
 
 const COULEURS_CAT: Record<Categorie, string> = {
   bug: '#5b5bf6', bonne_pratique: '#9aa0bd', securite: '#e5484d', performance: '#f59e0b',
@@ -18,63 +19,63 @@ const COULEURS_CAT: Record<Categorie, string> = {
 @Component({
   selector: 'app-tableau-de-bord',
   standalone: true,
-  imports: [FormsModule, RouterLink, DecimalPipe, DatePipe, BaseChartDirective],
+  imports: [TPipe, FormsModule, RouterLink, DecimalPipe, DatePipe, BaseChartDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="barre">
-      <div class="fil">Espace de travail / <b>Tableau de bord</b></div>
-      <select class="input periode" [ngModel]="jours()" (ngModelChange)="jours.set(+$event); charger()" aria-label="Période">
-        <option [value]="7">7 derniers jours</option>
-        <option [value]="30">30 derniers jours</option>
-        <option [value]="90">90 derniers jours</option>
+      <div class="fil">{{ 'Espace de travail /' | t }} <b>{{ 'Tableau de bord' | t }}</b></div>
+      <select class="input periode" [ngModel]="jours()" (ngModelChange)="jours.set(+$event); charger()" [attr.aria-label]="'Période' | t">
+        <option [value]="7">{{ '7 derniers jours' | t }}</option>
+        <option [value]="30">{{ '30 derniers jours' | t }}</option>
+        <option [value]="90">{{ '90 derniers jours' | t }}</option>
       </select>
     </header>
 
     <div class="page">
-      <h1 class="titre-page">Bonjour {{ prenom() }} 👋</h1>
-      <p class="sous-titre">Voici l'évolution de la qualité de votre code sur {{ jours() === 30 ? 'le dernier mois' : 'les ' + jours() + ' derniers jours' }}.</p>
+      <h1 class="titre-page">{{ 'Bonjour' | t }} {{ prenom() }} 👋</h1>
+      <p class="sous-titre">{{ 'Voici l\\'évolution de la qualité de votre code sur' | t }} {{ jours() === 30 ? ('le dernier mois' | t) : ('les ' | t) + jours() + (' derniers jours' | t) }}.</p>
 
-      @if (erreur()) { <div class="carte vide">{{ erreur() }}</div> }
+      @if (erreur()) { <div class="carte vide">{{ erreur() | t }}</div> }
 
       @if (tdb(); as t) {
         <div class="kpis">
           <div class="carte kpi">
-            <div class="k-titre">Revues effectuées</div>
+            <div class="k-titre">{{ 'Revues effectuées' | t }}</div>
             <div class="k-valeur">{{ t.nbRevues }}</div>
-            <div class="k-sous ok">+{{ t.nbRevuesSemaine }} cette semaine</div>
+            <div class="k-sous ok">+{{ t.nbRevuesSemaine }} {{ 'cette semaine' | t }}</div>
           </div>
           <div class="carte kpi">
-            <div class="k-titre">Problèmes détectés</div>
+            <div class="k-titre">{{ 'Problèmes détectés' | t }}</div>
             <div class="k-valeur">{{ t.nbProblemes }}</div>
-            <div class="k-sous">dont {{ t.nbCritiques }} critiques</div>
+            <div class="k-sous">{{ 'dont' | t }} {{ t.nbCritiques }} {{ 'critiques' | t }}</div>
           </div>
           <div class="carte kpi">
-            <div class="k-titre">Score moyen</div>
+            <div class="k-titre">{{ 'Score moyen' | t }}</div>
             <div class="k-valeur">{{ t.scoreMoyen | number: '1.0-0' }}<small>/100</small></div>
             <div class="k-sous" [class.ok]="t.progression >= 0" [class.ko]="t.progression < 0">
-              {{ t.progression >= 0 ? '▲ +' : '▼ ' }}{{ t.progression | number: '1.0-1' }} pts en {{ jours() }} jours</div>
+              {{ t.progression >= 0 ? '▲ +' : '▼ ' }}{{ t.progression | number: '1.0-1' }} {{ 'pts en' | t }} {{ jours() }} {{ 'jours' | t }}</div>
           </div>
           <div class="carte kpi">
-            <div class="k-titre">Corrections appliquées</div>
+            <div class="k-titre">{{ 'Corrections appliquées' | t }}</div>
             <div class="k-valeur">{{ t.nbProblemes ? (t.nbCorriges / t.nbProblemes * 100 | number: '1.0-0') : 0 }} %</div>
-            <div class="k-sous">{{ t.nbCorriges }} sur {{ t.nbProblemes }}</div>
+            <div class="k-sous">{{ t.nbCorriges }} {{ 'sur' | t }} {{ t.nbProblemes }}</div>
           </div>
         </div>
 
         <div class="graphes">
           <div class="carte g">
-            <h2>Évolution du score moyen</h2>
-            <p class="g-sous">Score qualité calculé par l'IA, moyenne glissante sur 5 revues</p>
+            <h2>{{ 'Évolution du score moyen' | t }}</h2>
+            <p class="g-sous">{{ 'Score qualité calculé par l\\'IA, moyenne glissante sur 5 revues' | t }}</p>
             @if (t.evolution.length) {
               <div class="toile"><canvas baseChart [type]="'line'" [data]="ligne()" [options]="optionsLigne"></canvas></div>
-            } @else { <div class="vide">Pas encore de revue sur la période.</div> }
+            } @else { <div class="vide">{{ 'Pas encore de revue sur la période.' | t }}</div> }
           </div>
           <div class="carte g">
-            <h2>Problèmes par catégorie</h2>
-            <p class="g-sous">{{ t.nbProblemes }} problèmes sur {{ t.nbRevues }} revues</p>
+            <h2>{{ 'Problèmes par catégorie' | t }}</h2>
+            <p class="g-sous">{{ t.nbProblemes }} {{ 'problèmes sur' | t }} {{ t.nbRevues }} {{ 'revues' | t }}</p>
             @if (t.nbProblemes) {
               <div class="toile petite"><canvas baseChart [type]="'bar'" [data]="barres()" [options]="optionsBarres"></canvas></div>
-            } @else { <div class="vide">Aucun problème : bravo !</div> }
+            } @else { <div class="vide">{{ 'Aucun problème : bravo !' | t }}</div> }
           </div>
         </div>
 
@@ -82,13 +83,13 @@ const COULEURS_CAT: Record<Categorie, string> = {
           @for (e of t.erreursDetaillees.slice(0, 3); track e.titre) {
             <div class="carte rec">
               <span class="nb">{{ e.occurrences }}</span>
-              <div><b>{{ e.titre }}</b><span>{{ libelleCat[e.categorie] }} · {{ e.corrigees }} corrigé(s)</span></div>
+              <div><b>{{ e.titre }}</b><span>{{ libelleCat[e.categorie] | t }} · {{ e.corrigees }} {{ 'corrigé(s)' | t }}</span></div>
             </div>
           } @empty {
-            <div class="carte rec vide-rec">Aucun problème récurrent. <a routerLink="/revues/nouvelle">Lancer une revue</a></div>
+            <div class="carte rec vide-rec">{{ 'Aucun problème récurrent.' | t }} <a routerLink="/revues/nouvelle">{{ 'Lancer une revue' | t }}</a></div>
           }
         </div>
-        <p class="periode-txt">Période du {{ t.debut | date: 'dd/MM/yyyy' }} au {{ t.fin | date: 'dd/MM/yyyy' }}</p>
+        <p class="periode-txt">{{ 'Période du' | t }} {{ t.debut | date: 'dd/MM/yyyy' }} {{ 'au' | t }} {{ t.fin | date: 'dd/MM/yyyy' }}</p>
       }
     </div>
   `,
@@ -136,11 +137,11 @@ export class TableauDeBordComponent implements OnInit {
       labels: ev.map((p) => new Date(p.jour).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
       datasets: [
         {
-          data: ev.map((p) => p.moyenneGlissante), label: 'Moyenne glissante', borderColor: '#5b5bf6', backgroundColor: 'rgba(91,91,246,.12)',
+          data: ev.map((p) => p.moyenneGlissante), label: tr('Moyenne glissante'), borderColor: '#5b5bf6', backgroundColor: 'rgba(91,91,246,.12)',
           fill: true, tension: .35, pointRadius: 3, pointBackgroundColor: '#5b5bf6',
         },
         {
-          data: ev.map((p) => p.scoreMoyenJour), label: 'Score du jour', borderColor: '#c7c9e8', backgroundColor: 'transparent',
+          data: ev.map((p) => p.scoreMoyenJour), label: tr('Score du jour'), borderColor: '#c7c9e8', backgroundColor: 'transparent',
           borderDash: [4, 4], pointRadius: 2, tension: .2,
         },
       ],

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { TransfertCodeService } from '../../core/transfert-code.service';
 import { messageErreur } from '../../core/http';
 import { CATEGORIES, EXTENSIONS, GRAVITES_PLURIEL, LANGAGES, MODES, libelleLangage } from '../../core/libelles';
 import { Categorie, Gravite, Probleme, RevueDetail } from '../../core/models';
@@ -11,6 +12,7 @@ import { CategorieBadgeComponent, GraviteBadgeComponent } from '../../shared/bad
 import { CodeEditorComponent } from '../../shared/code-editor.component';
 import { IconeComponent } from '../../shared/icone.component';
 import { ScoreRingComponent } from '../../shared/score-ring.component';
+import { TPipe } from '../../core/i18n';
 
 const CLE_BROUILLON = 'revia.brouillon';
 const MAX_LIGNES = 2000;
@@ -28,35 +30,35 @@ type Filtre = 'tous' | Categorie;
 @Component({
   selector: 'app-revue',
   standalone: true,
-  imports: [FormsModule, RouterLink, DecimalPipe, CodeEditorComponent, ScoreRingComponent, GraviteBadgeComponent,
+  imports: [TPipe, FormsModule, RouterLink, DecimalPipe, CodeEditorComponent, ScoreRingComponent, GraviteBadgeComponent,
     CategorieBadgeComponent, IconeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="barre">
       <div class="fil">
-        <a routerLink="/historique">Revues</a> /
+        <a routerLink="/historique">{{ 'Revues' | t }}</a> /
         <b>{{ revue()?.titre || titre() || 'Nouvelle revue' }}</b>
       </div>
-      <select class="input petit-select" [ngModel]="langage()" (ngModelChange)="langage.set($event)" aria-label="Langage">
-        @for (l of langages; track l.valeur) { <option [value]="l.valeur">{{ l.icone }}  {{ l.libelle }}</option> }
+      <select class="input petit-select" [ngModel]="langage()" (ngModelChange)="langage.set($event)" [attr.aria-label]="'Langage' | t">
+        @for (l of langages; track l.valeur) { <option [value]="l.valeur">{{ l.icone }}  {{ l.libelle | t }}</option> }
       </select>
-      <select class="input petit-select" [ngModel]="mode()" (ngModelChange)="mode.set($event)" aria-label="Mode d'analyse">
-        @for (m of modes; track m.valeur) { <option [value]="m.valeur">Mode : {{ m.libelle }}</option> }
+      <select class="input petit-select" [ngModel]="mode()" (ngModelChange)="mode.set($event)" [attr.aria-label]="'Mode d\\'analyse' | t">
+        @for (m of modes; track m.valeur) { <option [value]="m.valeur">{{ 'Mode :' | t }} {{ m.libelle | t }}</option> }
       </select>
-      <button class="btn" type="button" (click)="fichier.click()"><app-icone nom="import" />Importer un fichier</button>
+      <button class="btn" type="button" (click)="fichier.click()"><app-icone nom="import" />{{ 'Importer un fichier' | t }}</button>
       <input #fichier type="file" hidden [accept]="acceptes" (change)="importer($event)" />
       <button class="btn primaire" type="button" (click)="lancer()" [disabled]="analyse()">
-        @if (analyse()) { <span class="spinner"></span> Analyse… } @else { <app-icone nom="relancer" />{{ revue() ? 'Relancer la revue' : 'Lancer la revue' }} }
+        @if (analyse()) { <span class="spinner"></span> {{ 'Analyse…' | t }} } @else { <app-icone nom="relancer" />{{ revue() ? ('Relancer la revue' | t) : ('Lancer la revue' | t) }} }
       </button>
     </header>
 
     <div class="page grille">
       <!-- 1. L'éditeur -->
-      <section class="editeur-carte" aria-label="Éditeur de code">
+      <section class="editeur-carte" [attr.aria-label]="'Éditeur de code' | t">
         <div class="tete">
           <input class="nom-fichier" [ngModel]="titre()" (ngModelChange)="titre.set($event)" placeholder="NomDuFichier.java" maxlength="160"
-                 aria-label="Titre de l'extrait" />
-          <span class="meta">{{ nbLignes() }} lignes · UTF-8</span>
+                 [attr.aria-label]="'Titre de l\\'extrait' | t" />
+          <span class="meta">{{ nbLignes() }} {{ 'lignes · UTF-8' | t }}</span>
         </div>
         <div class="zone">
           <app-code-editor [code]="code()" (codeChange)="changerCode($event)" [langage]="langageEditeur()"
@@ -65,21 +67,25 @@ type Filtre = 'tous' | Categorie;
         <div class="pied">
           @if (revue(); as r) {
             @for (g of gravitesAffichees; track g) {
-              @if (r.parGravite[g]) { <span class="cpt" [class]="'c-' + g"><i></i>{{ r.parGravite[g] }} {{ pluriel[g] }}</span> }
+              @if (r.parGravite[g]) { <span class="cpt" [class]="'c-' + g"><i></i>{{ r.parGravite[g] }} {{ pluriel[g] | t }}</span> }
             }
           } @else {
-            <span>Collez votre code puis lancez la revue</span>
+            <span>{{ 'Collez votre code puis lancez la revue' | t }}</span>
           }
-          <span class="pos">Ln {{ curseur().ligne }}, Col {{ curseur().colonne }}</span>
+          @if (code().trim()) {
+            <button class="lien-ia" type="button" (click)="ouvrir('outils')" [title]="'Tests, documentation, explication…' | t">{{ '🧪 Outils IA' | t }}</button>
+            <button class="lien-ia" type="button" (click)="ouvrir('assistant')">{{ '💬 Demander à l\\'assistant' | t }}</button>
+          }
+          <span class="pos">{{ 'Ln' | t }} {{ curseur().ligne }}{{ ', Col' | t }} {{ curseur().colonne }}</span>
         </div>
       </section>
 
       <section class="droite">
         @if (erreur()) {
           <div class="carte erreur" role="alert">
-            <b>{{ erreur() }}</b>
-            <span>Votre code est conservé : vous pouvez relancer l'analyse.</span>
-            <button class="btn petit" type="button" (click)="lancer()" [disabled]="analyse()">Réessayer</button>
+            <b>{{ erreur() | t }}</b>
+            <span>{{ 'Votre code est conservé : vous pouvez relancer l\\'analyse.' | t }}</span>
+            <button class="btn petit" type="button" (click)="lancer()" [disabled]="analyse()">{{ 'Réessayer' | t }}</button>
           </div>
         }
 
@@ -87,10 +93,10 @@ type Filtre = 'tous' | Categorie;
           <div class="carte attente">
             <span class="spinner sombre grand"></span>
             <div>
-              <b>L'IA relit votre code…</b>
+              <b>{{ 'L\\'IA relit votre code…' | t }}</b>
               <ol>
                 @for (e of etapes; track e; let i = $index) {
-                  <li [class.faite]="i < etape()" [class.encours]="i === etape()">{{ e }}</li>
+                  <li [class.faite]="i < etape()" [class.encours]="i === etape()">{{ e | t }}</li>
                 }
               </ol>
             </div>
@@ -100,26 +106,28 @@ type Filtre = 'tous' | Categorie;
           <div class="carte resume">
             <app-score-ring [score]="r.score" [taille]="92" />
             <div class="texte">
-              <h2>{{ verdict() }}</h2>
+              <h2>{{ verdict() | t }}</h2>
               <p>{{ r.resume }}</p>
               <div class="pastilles">
                 @for (g of gravitesAffichees; track g) {
-                  @if (r.parGravite[g]) { <span class="badge" [class]="'g-' + g">{{ r.parGravite[g] }} {{ pluriel[g] }}</span> }
+                  @if (r.parGravite[g]) { <span class="badge" [class]="'g-' + g">{{ r.parGravite[g] }} {{ pluriel[g] | t }}</span> }
                 }
-                @if (r.nbMasquages) { <span class="badge neutre" title="Valeurs remplacées par ***MASQUÉ*** avant l'envoi au modèle">🔒 {{ r.nbMasquages }} secret(s) masqué(s)</span> }
+                @if (r.nbMasquages) { <span class="badge neutre" [title]="'Valeurs remplacées par ***MASQUÉ*** avant l\\'envoi au modèle' | t">🔒 {{ r.nbMasquages }} {{ 'secret(s) masqué(s)' | t }}</span> }
+                <button type="button" class="btn petit sarif" (click)="exporterSarif(r.id)"
+                        [title]="'Rapport standard SARIF 2.1.0 : GitHub code scanning, GitLab, Azure DevOps, SonarQube, VS Code' | t">{{ '⬇ SARIF' | t }}</button>
               </div>
             </div>
           </div>
 
           <!-- 3. Les problèmes -->
           <div class="filtres" role="tablist">
-            <button type="button" role="tab" [class.actif]="filtre() === 'tous'" (click)="filtre.set('tous')">Tous · {{ actifs().length }}</button>
+            <button type="button" role="tab" [class.actif]="filtre() === 'tous'" (click)="filtre.set('tous')">{{ 'Tous ·' | t }} {{ actifs().length }}</button>
             @for (c of categories; track c) {
               @if (compte(c)) {
-                <button type="button" role="tab" [class.actif]="filtre() === c" (click)="filtre.set(c)">{{ libellesCat[c] }} · {{ compte(c) }}</button>
+                <button type="button" role="tab" [class.actif]="filtre() === c" (click)="filtre.set(c)">{{ libellesCat[c] | t }} · {{ compte(c) }}</button>
               }
             }
-            <span class="duree">Analyse en {{ r.dureeMs / 1000 | number: '1.1-1' }} s · {{ r.modele }}</span>
+            <span class="duree">{{ 'Analyse en' | t }} {{ r.dureeMs / 1000 | number: '1.1-1' }} {{ 's ·' | t }} {{ r.modele }}</span>
           </div>
 
           <div class="liste">
@@ -128,53 +136,54 @@ type Filtre = 'tous' | Categorie;
                 <div class="entete">
                   <app-gravite [valeur]="p.gravite" />
                   <app-categorie [valeur]="p.categorie" />
-                  @if (p.corrige) { <span class="badge s-corrigee">✓ Corrigé</span> }
-                  @if (p.fauxPositif) { <span class="badge neutre">Faux positif</span> }
-                  <span class="ligne">Ligne {{ p.ligne }}</span>
+                  @if (p.corrige) { <span class="badge s-corrigee">{{ '✓ Corrigé' | t }}</span> }
+                  @if (p.fauxPositif) { <span class="badge neutre">{{ 'Faux positif' | t }}</span> }
+                  <span class="ligne">{{ 'Ligne' | t }} {{ p.ligne }}</span>
                 </div>
                 <h3>{{ p.titre }}</h3>
                 <p>{{ p.explication }}</p>
                 <div class="actions">
                   @if (p.correction) {
-                    <a [routerLink]="['/revues', r.id, 'problemes', indexDe(p)]" (click)="$event.stopPropagation()">Voir la correction →</a>
+                    <a [routerLink]="['/revues', r.id, 'problemes', indexDe(p)]" (click)="$event.stopPropagation()">{{ 'Voir la correction →' | t }}</a>
                   } @else {
                     <span></span>
                   }
                   <button type="button" class="btn lien discret" (click)="basculerFauxPositif(p); $event.stopPropagation()">
-                    {{ p.fauxPositif ? 'Annuler le faux positif' : 'Faux positif ?' }}
+                    {{ p.fauxPositif ? ('Annuler le faux positif' | t) : ('Faux positif ?' | t) }}
                   </button>
                 </div>
               </article>
             } @empty {
               <div class="carte vide">
                 @if (actifs().length === 0 && filtre() === 'tous') {
-                  <div class="grand">🎉</div><b>Aucun problème détecté.</b><br />Le code semble sain sur les points vérifiés.
+                  <div class="grand">🎉</div><b>{{ 'Aucun problème détecté.' | t }}</b><br />{{ 'Le code semble sain sur les points vérifiés.' | t }}
                 } @else {
-                  Aucun problème dans cette catégorie.
+                  {{ 'Aucun problème dans cette catégorie.' | t }}
                 }
               </div>
             }
           </div>
           @if (r.problemesRejetes) {
-            <p class="note">{{ r.problemesRejetes }} remarque(s) de l'IA écartée(s) à la validation (ligne inexistante).</p>
+            <p class="note">{{ r.problemesRejetes }} {{ 'remarque(s) de l\\'IA écartée(s) à la validation (ligne inexistante).' | t }}</p>
           }
         } } @else if (!erreur()) {
           <div class="carte accueil">
-            <div class="sur-titre">Comment ça marche</div>
-            <h2>Une IA qui relit votre code comme un développeur senior</h2>
+            <div class="sur-titre">{{ 'Comment ça marche' | t }}</div>
+            <h2>{{ 'Une IA qui relit votre code comme un développeur senior' | t }}</h2>
             <ol class="etapes-accueil">
-              <li><span>1</span><div><b>Coller le code</b> ou importer un fichier (1 à 2 000 lignes, 12 langages).</div></li>
-              <li><span>2</span><div><b>L'IA analyse</b> : bugs, mauvaises pratiques, failles OWASP, classés par gravité.</div></li>
-              <li><span>3</span><div><b>Corriger</b> : diff avant / après et le pourquoi du changement.</div></li>
+              <li><span>1</span><div><b>{{ 'Coller le code' | t }}</b> {{ 'ou importer un fichier (1 à 2 000 lignes, 12 langages).' | t }}</div></li>
+              <li><span>2</span><div><b>{{ 'L\\'IA analyse' | t }}</b> {{ ': bugs, mauvaises pratiques, failles OWASP, classés par gravité.' | t }}</div></li>
+              <li><span>3</span><div><b>{{ 'Corriger' | t }}</b> {{ ': diff avant / après et le pourquoi du changement.' | t }}</div></li>
             </ol>
-            <p class="confiance"><app-icone nom="bouclier" /> Mots de passe, clés d'API et e-mails sont masqués avant tout envoi au modèle.</p>
-            <button class="btn" type="button" (click)="exemple()">Essayer avec un exemple</button>
+            <p class="confiance"><app-icone nom="bouclier" /> {{ 'Mots de passe, clés d\\'API et e-mails sont masqués avant tout envoi au modèle.' | t }}</p>
+            <button class="btn" type="button" (click)="exemple()">{{ 'Essayer avec un exemple' | t }}</button>
           </div>
         }
       </section>
     </div>
   `,
   styles: [`
+    .sarif { margin-left: auto; }
     .petit-select { height: 34px; font-size: 13px; padding: 0 8px; max-width: 220px; }
     .grille { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; max-width: none; }
     .editeur-carte {
@@ -191,6 +200,8 @@ type Filtre = 'tous' | Categorie;
     .zone { flex: 1; min-height: 0; }
     .pied { display: flex; gap: 14px; align-items: center; padding: 8px 12px; border-top: 1px solid #1f2444; color: #7d84ad; font-size: 11.5px; }
     .pos { margin-left: auto; }
+    .lien-ia { background: #1b1f3d; border: 1px solid #262b52; color: #c9cdf0; border-radius: 6px; padding: 2px 8px; font: 11.5px var(--police); cursor: pointer; }
+    .lien-ia:hover { border-color: var(--primaire); color: #fff; }
     .cpt { display: inline-flex; align-items: center; gap: 5px; }
     .cpt i { width: 7px; height: 7px; border-radius: 50%; }
     .c-critique i { background: #ef4444; } .c-majeure i { background: #f97316; } .c-mineure i { background: #eab308; } .c-info i { background: #60a5fa; }
@@ -247,6 +258,7 @@ export class RevueComponent implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly transfert = inject(TransfertCodeService);
 
   /** Paramètre de route /revues/:id (absent pour /revues/nouvelle). */
   readonly id = input<string | undefined>(undefined);
@@ -265,6 +277,17 @@ export class RevueComponent implements OnDestroy {
   readonly langage = signal('auto');
   readonly mode = signal('complet');
   readonly revue = signal<RevueDetail | null>(null);
+
+  exporterSarif(id: number): void {
+    this.api.sarif(id).subscribe((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'revia-' + id + '.sarif';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
   readonly analyse = signal(false);
   readonly etape = signal(0);
   readonly erreur = signal<string | null>(null);
@@ -369,6 +392,12 @@ export class RevueComponent implements OnDestroy {
       }
       this.sauverBrouillon();
     });
+  }
+
+  /** Envoie le code de l'éditeur vers l'assistant ou les outils IA. */
+  ouvrir(page: 'assistant' | 'outils'): void {
+    this.transfert.deposer(this.code(), this.langage());
+    this.router.navigate(['/' + page]);
   }
 
   exemple(): void {

@@ -28,8 +28,18 @@ services:
         value: gemini        # gratuit (aistudio.google.com) ; groq aussi possible
       - key: REVIA_AI_API_KEY
         sync: false          # clé Gemini saisie dans le tableau de bord Render, jamais dans le code
+      - key: REVIA_AI_FALLBACK
+        value: groq,openrouter,mistral,demo   # relais gratuits si Gemini atteint son quota
+      - key: GROQ_API_KEY
+        sync: false          # facultatif (console.groq.com)
+      - key: OPENROUTER_API_KEY
+        sync: false          # facultatif (openrouter.ai/keys)
+      - key: MISTRAL_API_KEY
+        sync: false          # facultatif (console.mistral.ai)
       - key: REVIA_CORS_ORIGINS
         value: https://revia.vercel.app
+      - key: REVIA_IP_HEADER
+        value: x-vercel-forwarded-for   # vraie IP du visiteur derrière la réécriture Vercel (limitation de débit)
 
 databases:
   - name: revia-db

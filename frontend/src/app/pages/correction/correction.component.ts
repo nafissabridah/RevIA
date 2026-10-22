@@ -8,6 +8,7 @@ import { NotifService } from '../../core/notif.service';
 import { CategorieBadgeComponent, GraviteBadgeComponent } from '../../shared/badges';
 import { LigneDiff, desindenter, diffLignes } from '../../shared/diff';
 import { IconeComponent } from '../../shared/icone.component';
+import { TPipe } from '../../core/i18n';
 
 const REFLEXES: Record<Categorie, string> = {
   securite: "Toute donnée venant de l'extérieur (formulaire, URL, fichier) doit être considérée comme non fiable : validez-la, échappez-la, et passez-la en paramètre plutôt que de la concaténer.",
@@ -20,28 +21,28 @@ const REFLEXES: Record<Categorie, string> = {
 @Component({
   selector: 'app-correction',
   standalone: true,
-  imports: [RouterLink, GraviteBadgeComponent, CategorieBadgeComponent, IconeComponent],
+  imports: [TPipe, RouterLink, GraviteBadgeComponent, CategorieBadgeComponent, IconeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="barre">
       <div class="fil">
-        <a routerLink="/historique">Revues</a> /
+        <a routerLink="/historique">{{ 'Revues' | t }}</a> /
         @if (revue(); as r) { <a [routerLink]="['/revues', r.id]">{{ r.titre }}</a> / }
-        <b>Problème {{ position() }} sur {{ revue()?.problemes?.length ?? 0 }}</b>
+        <b>{{ 'Problème' | t }} {{ position() }} {{ 'sur' | t }} {{ revue()?.problemes?.length ?? 0 }}</b>
       </div>
-      <button class="btn" type="button" [disabled]="position() <= 1" (click)="aller(position() - 1)">← Précédent</button>
-      <button class="btn" type="button" [disabled]="position() >= (revue()?.problemes?.length ?? 0)" (click)="aller(position() + 1)">Suivant →</button>
+      <button class="btn" type="button" [disabled]="position() <= 1" (click)="aller(position() - 1)">{{ '← Précédent' | t }}</button>
+      <button class="btn" type="button" [disabled]="position() >= (revue()?.problemes?.length ?? 0)" (click)="aller(position() + 1)">{{ 'Suivant →' | t }}</button>
     </header>
 
-    @if (erreur()) { <div class="page"><div class="carte vide">{{ erreur() }}</div></div> }
+    @if (erreur()) { <div class="page"><div class="carte vide">{{ erreur() | t }}</div></div> }
 
     @if (revue(); as r) {
       <div class="page grille">
-        <nav class="carte liste" aria-label="Problèmes détectés">
-          <div class="sur-titre">{{ r.problemes.length }} problèmes détectés</div>
+        <nav class="carte liste" [attr.aria-label]="'Problèmes détectés' | t">
+          <div class="sur-titre">{{ r.problemes.length }} {{ 'problèmes détectés' | t }}</div>
           @for (p of r.problemes; track p.id; let i = $index) {
             <a [routerLink]="['/revues', r.id, 'problemes', i + 1]" [class.actif]="i + 1 === position()" [class.fp]="p.fauxPositif">
-              <i [class]="'d-' + p.gravite"></i><span class="t">{{ p.titre }}</span><span class="l">L{{ p.ligne }}</span>
+              <i [class]="'d-' + p.gravite"></i><span class="t">{{ p.titre }}</span><span class="l">{{ 'L' | t }}{{ p.ligne }}</span>
             </a>
           }
         </nav>
@@ -52,35 +53,35 @@ const REFLEXES: Record<Categorie, string> = {
               <div class="badges">
                 <app-gravite [valeur]="p.gravite" />
                 <app-categorie [valeur]="p.categorie" />
-                @if (p.owasp) { <span class="badge neutre">OWASP {{ p.owasp }}</span> }
-                <span class="badge neutre">Ligne {{ p.ligne }}</span>
-                @if (p.fauxPositif) { <span class="badge neutre">Signalé comme faux positif</span> }
+                @if (p.owasp) { <span class="badge neutre">{{ 'OWASP' | t }} {{ p.owasp }}</span> }
+                <span class="badge neutre">{{ 'Ligne' | t }} {{ p.ligne }}</span>
+                @if (p.fauxPositif) { <span class="badge neutre">{{ 'Signalé comme faux positif' | t }}</span> }
               </div>
               <h1>{{ p.titre }}</h1>
 
               <!-- 1. Le pourquoi -->
               <div class="deux">
                 <div class="encadre">
-                  <div class="sur-titre">Problème</div>
+                  <div class="sur-titre">{{ 'Problème' | t }}</div>
                   <p>{{ p.explication }}</p>
                 </div>
                 <div class="encadre">
-                  <div class="sur-titre">La correction</div>
-                  <p>{{ p.correction?.justification || 'Aucune correction automatique proposée pour ce problème.' }}</p>
+                  <div class="sur-titre">{{ 'La correction' | t }}</div>
+                  <p>{{ p.correction?.justification || ('Aucune correction automatique proposée pour ce problème.' | t) }}</p>
                 </div>
               </div>
 
               <!-- 2. Diff avant / après -->
               @if (p.correction) {
-                <div class="diff" aria-label="Différences avant / après">
+                <div class="diff" [attr.aria-label]="'Différences avant / après' | t">
                   <div class="col">
-                    <div class="col-tete">Avant · {{ r.titre }}</div>
+                    <div class="col-tete">{{ 'Avant ·' | t }} {{ r.titre }}</div>
                     @for (d of gauche(); track $index) {
                       <div class="l" [class.moins]="d.type === 'retire'"><span class="n">{{ d.avant !== null ? p.ligne + d.avant - 1 : '' }}</span><span class="s">{{ d.type === 'retire' ? '−' : ' ' }}</span><code>{{ d.texte }}</code></div>
                     }
                   </div>
                   <div class="col">
-                    <div class="col-tete">Après · correction proposée par RevIA</div>
+                    <div class="col-tete">{{ 'Après · correction proposée par RevIA' | t }}</div>
                     @for (d of droite(); track $index) {
                       <div class="l" [class.plus]="d.type === 'ajoute'"><span class="n">{{ d.apres !== null ? p.ligne + d.apres - 1 : '' }}</span><span class="s">{{ d.type === 'ajoute' ? '+' : ' ' }}</span><code>{{ d.texte }}</code></div>
                     }
@@ -91,34 +92,32 @@ const REFLEXES: Record<Categorie, string> = {
               <!-- 3. Retour utilisateur -->
               <div class="actions">
                 @if (p.correction) {
-                  <button class="btn primaire" type="button" (click)="copier(p)"><app-icone nom="copier" />{{ p.correction.copiee ? 'Copier à nouveau' : 'Copier la correction' }}</button>
+                  <button class="btn primaire" type="button" (click)="copier(p)"><app-icone nom="copier" />{{ p.correction.copiee ? ('Copier à nouveau' | t) : ('Copier la correction' | t) }}</button>
                 }
-                <button class="btn" type="button" (click)="corrige(p)" [class.coche]="p.corrige"><app-icone nom="check" />{{ p.corrige ? 'Corrigé' : 'Marquer comme corrigé' }}</button>
+                <button class="btn" type="button" (click)="corrige(p)" [class.coche]="p.corrige"><app-icone nom="check" />{{ p.corrige ? ('Corrigé' | t) : ('Marquer comme corrigé' | t) }}</button>
                 <span class="espace"></span>
-                <span class="utile">Utile ?</span>
-                <button class="btn petit" type="button" [class.choisi]="p.utile === true" (click)="utile(p, true)">👍 Oui</button>
-                <button class="btn petit" type="button" [class.choisi]="p.utile === false" (click)="utile(p, false)">👎 Non</button>
-                <button class="btn petit" type="button" [class.choisi]="p.fauxPositif" (click)="fauxPositif(p)">🏳 {{ p.fauxPositif ? 'Annuler faux positif' : 'Faux positif' }}</button>
+                <span class="utile">{{ 'Utile ?' | t }}</span>
+                <button class="btn petit" type="button" [class.choisi]="p.utile === true" (click)="utile(p, true)">{{ '👍 Oui' | t }}</button>
+                <button class="btn petit" type="button" [class.choisi]="p.utile === false" (click)="utile(p, false)">{{ '👎 Non' | t }}</button>
+                <button class="btn petit" type="button" [class.choisi]="p.fauxPositif" (click)="fauxPositif(p)">🏳 {{ p.fauxPositif ? ('Annuler faux positif' | t) : ('Faux positif' | t) }}</button>
               </div>
             </div>
 
             <div class="carte reflexe">
               <span class="ampoule">💡</span>
               <div>
-                <div class="sur-titre">Bon réflexe pour la suite</div>
-                <p>{{ reflexe() }}
+                <div class="sur-titre">{{ 'Bon réflexe pour la suite' | t }}</div>
+                <p>{{ reflexe() | t }}
                   @if (p.occurrencesPrecedentes > 0) {
-                    RevIA a déjà détecté ce même motif <b>{{ p.occurrencesPrecedentes }} fois</b> dans vos revues précédentes.
+                    {{ 'RevIA a déjà détecté ce même motif' | t }} <b>{{ p.occurrencesPrecedentes }} {{ 'fois' | t }}</b> {{ 'dans vos revues précédentes.' | t }}
                   }
                 </p>
               </div>
             </div>
 
             <div class="carte contexte">
-              <div class="sur-titre">Contexte envoyé au modèle</div>
-              <p>Extrait de {{ r.nbLignes }} lignes · langage : {{ libelleLangage(r.langage) }} ·
-                secrets masqués avant envoi ({{ r.nbMasquages }} valeur(s) remplacée(s) par <code>***MASQUÉ***</code>) ·
-                réponse validée par schéma JSON · fournisseur {{ r.fournisseur }} / {{ r.modele }} · prompt {{ r.promptVersion }}</p>
+              <div class="sur-titre">{{ 'Contexte envoyé au modèle' | t }}</div>
+              <p>{{ 'Extrait de' | t }} {{ r.nbLignes }} {{ 'lignes · langage :' | t }} {{ libelleLangage(r.langage) | t }} {{ '· secrets masqués avant envoi (' | t }}{{ r.nbMasquages }} {{ 'valeur(s) remplacée(s) par' | t }} <code>***MASQUÉ***</code>{{ ') · réponse validée par schéma JSON · fournisseur' | t }} {{ r.fournisseur }} / {{ r.modele }} {{ '· prompt' | t }} {{ r.promptVersion }}</p>
             </div>
           </section>
         }

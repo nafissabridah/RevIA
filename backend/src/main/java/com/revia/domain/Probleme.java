@@ -76,7 +76,9 @@ public class Probleme {
     /** Le développeur indique que l'IA s'est trompée : le problème ne compte plus dans le score. */
     public void signalerFauxPositif(boolean valeur) {
         this.fauxPositif = valeur;
-        revue.calculerScore();
+        if (revue != null) { // pas encore rattaché à une revue : le score sera calculé à l'ajout
+            revue.calculerScore();
+        }
     }
 
     public void proposer(Correction c) {

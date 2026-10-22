@@ -4,6 +4,12 @@ import { ShellComponent } from './layout/shell.component';
 
 export const routes: Routes = [
   {
+    path: '',
+    pathMatch: 'full',
+    title: 'RevIA · Revue de code IA, sécurité OWASP et quality gate CI',
+    loadComponent: () => import('./pages/accueil/accueil.component').then((m) => m.AccueilComponent),
+  },
+  {
     path: 'connexion',
     canActivate: [inviteGuard],
     title: 'Connexion · RevIA',
@@ -54,6 +60,24 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/tableau-de-bord/tableau-de-bord.component').then((m) => m.TableauDeBordComponent),
       },
       {
+        path: 'assistant',
+        canActivate: [developpeurGuard],
+        title: 'Assistant IA · RevIA',
+        loadComponent: () => import('./pages/assistant/assistant.component').then((m) => m.AssistantComponent),
+      },
+      {
+        path: 'outils',
+        canActivate: [developpeurGuard],
+        title: 'Outils IA · RevIA',
+        loadComponent: () => import('./pages/outils/outils.component').then((m) => m.OutilsComponent),
+      },
+      {
+        path: 'criteres',
+        canActivate: [developpeurGuard],
+        title: 'Couverture des critères · RevIA',
+        loadComponent: () => import('./pages/criteres/criteres.component').then((m) => m.CriteresComponent),
+      },
+      {
         path: 'parametres',
         title: 'Paramètres · RevIA',
         loadComponent: () => import('./pages/parametres/parametres.component').then((m) => m.ParametresComponent),
@@ -66,5 +90,6 @@ export const routes: Routes = [
       },
     ],
   },
+  { path: 'tarifs', redirectTo: '' },
   { path: '**', redirectTo: '' },
 ];

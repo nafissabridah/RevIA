@@ -6,30 +6,31 @@ import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
 import { PromptSysteme, SystemeInfo, Utilisateur } from '../../core/models';
 import { NotifService } from '../../core/notif.service';
+import { TPipe } from '../../core/i18n';
 
 /** Gérer utilisateurs & quotas (administrateur) + versions du prompt système. */
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [TPipe, FormsModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="barre"><div class="fil">Administration / <b>Utilisateurs &amp; quotas</b></div></header>
+    <header class="barre"><div class="fil">{{ 'Administration /' | t }} <b>{{ 'Utilisateurs & quotas' | t }}</b></div></header>
     <div class="page">
-      <h1 class="titre-page">Utilisateurs &amp; quotas</h1>
-      <p class="sous-titre">Définissez le nombre de revues par jour de chaque développeur, bloquez un compte, gérez le prompt système.</p>
+      <h1 class="titre-page">{{ 'Utilisateurs & quotas' | t }}</h1>
+      <p class="sous-titre">{{ 'Définissez le nombre de revues par jour de chaque développeur, bloquez un compte, gérez le prompt système.' | t }}</p>
 
       @if (systeme(); as s) {
         <div class="carte etat" [class.ko]="!s.disponible">
-          <b>Module IA : {{ s.fournisseur }} / {{ s.modele }}</b>
-          <span>{{ s.disponible ? 'opérationnel' : "clé d'API absente : les analyses sont refusées (définir REVIA_AI_API_KEY)" }} · température {{ s.temperature }} · délai {{ s.timeoutSec }} s · quota par défaut {{ s.quotaParDefaut }}/jour</span>
+          <b>{{ 'Module IA :' | t }} {{ s.fournisseur }} / {{ s.modele }}</b>
+          <span>{{ s.disponible ? ('opérationnel' | t) : ("clé d'API absente : les analyses sont refusées (définir REVIA_AI_API_KEY)" | t) }} {{ '· température' | t }} {{ s.temperature }} {{ '· délai' | t }} {{ s.timeoutSec }} {{ 's · quota par défaut' | t }} {{ s.quotaParDefaut }}{{ '/jour' | t }}</span>
         </div>
       }
 
       <div class="carte">
         <div class="defile">
           <table>
-            <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Inscrit le</th><th>Revues</th><th>Aujourd'hui</th><th>Quota / jour</th><th>Compte</th></tr></thead>
+            <thead><tr><th>{{ 'Utilisateur' | t }}</th><th>{{ 'Rôle' | t }}</th><th>{{ 'Inscrit le' | t }}</th><th>{{ 'Revues' | t }}</th><th>{{ 'Aujourd\\'hui' | t }}</th><th>{{ 'Quota / jour' | t }}</th><th>{{ 'Compte' | t }}</th></tr></thead>
             <tbody>
               @for (u of utilisateurs(); track u.id) {
                 <tr [class.bloque]="u.bloque">
@@ -41,15 +42,15 @@ import { NotifService } from '../../core/notif.service';
                   <td>
                     @if (u.role === 'DEVELOPPEUR') {
                       <div class="quota">
-                        <input class="input" type="number" min="0" max="10000" [(ngModel)]="quotas[u.id]" [attr.aria-label]="'Quota de ' + u.nom" />
-                        <button class="btn petit" type="button" (click)="definirQuota(u)" [disabled]="quotas[u.id] === u.quotaJournalier">OK</button>
+                        <input class="input" type="number" min="0" max="10000" [(ngModel)]="quotas[u.id]" [attr.aria-label]="('Quota de ' | t) + u.nom" />
+                        <button class="btn petit" type="button" (click)="definirQuota(u)" [disabled]="quotas[u.id] === u.quotaJournalier">{{ 'OK' | t }}</button>
                       </div>
                     } @else { — }
                   </td>
                   <td>
                     @if (u.id !== auth.utilisateur()?.id) {
-                      <button class="btn petit" [class.danger]="!u.bloque" type="button" (click)="bloquer(u)">{{ u.bloque ? 'Débloquer' : 'Bloquer' }}</button>
-                    } @else { <span class="mail">vous</span> }
+                      <button class="btn petit" [class.danger]="!u.bloque" type="button" (click)="bloquer(u)">{{ u.bloque ? ('Débloquer' | t) : ('Bloquer' | t) }}</button>
+                    } @else { <span class="mail">{{ 'vous' | t }}</span> }
                   </td>
                 </tr>
               }
@@ -58,30 +59,30 @@ import { NotifService } from '../../core/notif.service';
         </div>
       </div>
 
-      <h2 class="sous-section">Prompt système</h2>
+      <h2 class="sous-section">{{ 'Prompt système' | t }}</h2>
       <div class="prompts">
         <div class="carte versions">
           @for (p of prompts(); track p.id) {
             <button type="button" class="version" [class.selection]="p.id === promptVu()?.id" (click)="promptVu.set(p)">
-              <b>{{ p.version }}</b> @if (p.actif) { <span class="badge s-corrigee">actif</span> }
-              <span class="mail">{{ p.creeLe | date: 'dd/MM/yyyy HH:mm' }}</span>
+              <b>{{ p.version }}</b> @if (p.actif) { <span class="badge s-corrigee">{{ 'actif' | t }}</span> }
+              <span class="mail">{{ p.creeLe | date: ('dd/MM/yyyy HH:mm' | t) }}</span>
             </button>
           }
-          <button type="button" class="btn petit" (click)="nouveau()">+ Nouvelle version</button>
+          <button type="button" class="btn petit" (click)="nouveau()">{{ '+ Nouvelle version' | t }}</button>
         </div>
         <div class="carte editeur-prompt">
           @if (edition()) {
-            <div class="champ"><label for="v">Version</label><input id="v" class="input" [(ngModel)]="nouvelleVersion" placeholder="v2" maxlength="20" /></div>
-            <textarea class="input" rows="18" [(ngModel)]="nouveauContenu" aria-label="Contenu du prompt"></textarea>
-            <p class="mail">Variables disponibles : {{ '{' }}langage{{ '}' }} et {{ '{' }}mode{{ '}' }}. La nouvelle version devient active immédiatement.</p>
+            <div class="champ"><label for="v">{{ 'Version' | t }}</label><input id="v" class="input" [(ngModel)]="nouvelleVersion" [placeholder]="'v2' | t" maxlength="20" /></div>
+            <textarea class="input" rows="18" [(ngModel)]="nouveauContenu" [attr.aria-label]="'Contenu du prompt' | t"></textarea>
+            <p class="mail">{{ 'Variables disponibles :' | t }} {{ '{' }}{{ 'langage' | t }}{{ '}' }} {{ 'et' | t }} {{ '{' }}{{ 'mode' | t }}{{ '}' }}{{ '. La nouvelle version devient active immédiatement.' | t }}</p>
             <div class="actions">
-              <button class="btn" type="button" (click)="edition.set(false)">Annuler</button>
-              <button class="btn primaire" type="button" (click)="publier()">Publier et activer</button>
+              <button class="btn" type="button" (click)="edition.set(false)">{{ 'Annuler' | t }}</button>
+              <button class="btn primaire" type="button" (click)="publier()">{{ 'Publier et activer' | t }}</button>
             </div>
           } @else if (promptVu()) {
             @if (promptVu(); as p) {
               <pre>{{ p.contenu }}</pre>
-              @if (!p.actif) { <button class="btn" type="button" (click)="activer(p)">Activer cette version</button> }
+              @if (!p.actif) { <button class="btn" type="button" (click)="activer(p)">{{ 'Activer cette version' | t }}</button> }
             }
           }
         </div>

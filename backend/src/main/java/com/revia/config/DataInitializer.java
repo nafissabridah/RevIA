@@ -86,6 +86,9 @@ public class DataInitializer implements ApplicationRunner {
                 return;
             }
             mdp = "Admin2026!";
+        } else if (Arrays.asList(env.getActiveProfiles()).contains("prod")
+                && (com.revia.security.JwtService.exemple(mdp) || "Admin2026!".equals(mdp))) {
+            throw new IllegalStateException("REVIA_ADMIN_PASSWORD est un mot de passe d'exemple connu : choisissez-en un vrai.");
         }
         utilisateurs.save(new Administrateur(props.admin().nom(), props.admin().email().toLowerCase(), encoder.encode(mdp)));
         log.info("Compte administrateur créé : {}", props.admin().email());

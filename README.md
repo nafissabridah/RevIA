@@ -5,6 +5,29 @@
 > Application web (Angular + Spring Boot + PostgreSQL) où l'on colle son code et où l'IA le relit comme un développeur senior :
 > elle détecte les bugs, les mauvaises pratiques et les failles de sécurité, puis propose une **correction expliquée**.
 
+> **Nouveau (v1.3) — ce qu'aucun autre outil ne fait** :
+> - **Tests prouvés** : sur chaque pull request, RevIA génère les tests unitaires des fichiers modifiés, **les exécute dans
+>   votre CI**, les répare à partir de la vraie sortie d'erreur, puis **injecte des bugs dans votre code (tests de mutation)**
+>   pour prouver que les tests les détectent. Seuls les tests verts sont gardés, avec un score de mutation par fichier ;
+>   un test qui échoue parce que le *code* est faux devient un **bug signalé**, jamais une assertion affaiblie.
+>   Votre code s'exécute sur votre runner, jamais sur le serveur RevIA (`REVIA_PROVEN_TESTS=true`).
+> - **Couverture des critères d'acceptation** : la PR fait-elle ce que la user story demande ? Chaque critère de la
+>   description de la PR (puces ou Gherkin) est vérifié dans le diff : ✅ implémenté **et** testé, 🟡 partiel, ❌ absent,
+>   avec preuves `fichier:ligne` et le test manquant (page « Couverture des critères », section du commentaire de PR,
+>   gate `REVIA_MIN_AC_COVERAGE`).
+> - Réponses de l'IA en **15 langues** (dont arabe, turc, espagnol, chinois), modèles gratuits plus puissants pour les
+>   outils QA, correctifs de sécurité de production. Détails : [CHANGELOG.md](CHANGELOG.md).
+>
+> **v1.2** : **boîte à outils QA** (plan et cas de test + Gherkin, tests E2E Playwright/Cypress/Selenium, tests d'API + k6,
+> rapport de bug, analyse de stack trace, données de test, revue de tests), **relais automatique entre LLM gratuits**
+> (Gemini → Groq `gpt-oss-120b` → OpenRouter `openrouter/free` → Mistral Codestral → démo), **interface et réponses de l'IA en anglais**
+> (bascule FR/EN), **commentaire de synthèse sur la PR / MR**. Détails : [CHANGELOG.md](CHANGELOG.md).
+>
+> **v1.1 (prêt pour la vente)** : page d'accueil publique FR/EN avec essai sans compte, jetons d'API + script CI
+> (GitHub Actions / GitLab CI) avec quality gate, export **SARIF 2.1.0**, rapports en anglais, correctifs de navigation.
+> Détails : [docs/AUDIT-commercial.md](docs/AUDIT-commercial.md) · English summary: [README.en.md](README.en.md) ·
+> Intégrations : [integrations/](integrations/) · Démo vidéo : `marketing/RevIA-demo.mp4`
+
 Ce document regroupe tout ce qu'il faut savoir : versions, installation, lancement, tests, architecture, choix techniques, conformité à la présentation `RevIA_Presentation_corrigee.pptx` et ce qui a été ajouté.
 
 ---
@@ -99,7 +122,7 @@ Pour arrêter l'application, faites `Ctrl + C` dans la fenêtre PowerShell.
 | Tests : JUnit 5 · Mockito · MockMvc | via spring-boot-starter-test | « JUnit 5 · Mockito » ✅ |
 | Maven | 3.9.9 | |
 
-**Version de l'application : RevIA 1.0.0** (`revia.version` dans `application.yml`, et `GET /api/systeme/info`).
+**Version de l'application : RevIA 1.2.0** (`revia.version` dans `application.yml`, et `GET /api/systeme/info`).
 
 ---
 
@@ -162,14 +185,22 @@ Autres fournisseurs possibles, sans changer le code :
 
 | `REVIA_AI_PROVIDER` | Gratuit ? | Modèle par défaut | Clé |
 |---|---|---|---|
-| `gemini` ✅ choisi | oui | `gemini-flash-lite-latest` | aistudio.google.com |
-| `groq` | oui | `llama-3.3-70b-versatile` | console.groq.com (`gsk_...`) |
+| `gemini` ✅ choisi | oui | revue/chat `gemini-flash-lite-latest` · outils QA `gemini-flash-latest` (repli sur Flash-Lite si quota) | aistudio.google.com |
+| `groq` | oui | `openai/gpt-oss-120b` (Llama 3.3 retiré par Groq le 16/08/2026) | console.groq.com (`gsk_...`) |
+| `openrouter` | oui (modèles `:free`) | `openrouter/free` (routeur : toujours un modèle gratuit en ligne) | openrouter.ai/keys |
+| `mistral` | oui (offre Experiment) | `codestral-latest` | console.mistral.ai |
 | `ollama` | oui, 100 % local | `qwen2.5-coder:1.5b` | aucune (`ollama pull qwen2.5-coder:1.5b`) |
 | `openai` | non | `gpt-4o-mini` | `sk-...` |
 | `anthropic` | non | `claude-sonnet-5-5` | `sk-ant-...` |
 | `demo` | oui, sans LLM | règles locales | aucune |
 
 Pour un modèle local lent (Ollama sur CPU), augmentez le délai : `$env:REVIA_AI_TIMEOUT = "120"`.
+
+**Relais automatique (v1.2)** : `REVIA_AI_FALLBACK=groq,openrouter,mistral,demo` (valeur par défaut en profil prod).
+Si le fournisseur principal atteint son quota gratuit, refuse la clé ou ne répond pas, le suivant répond à sa place
+(diffusion en direct comprise). Chaque fournisseur lit sa clé propre : `GEMINI_API_KEY`, `GROQ_API_KEY`,
+`OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` ; un fournisseur sans clé est ignoré.
+La chaîne utilisée est affichée dans **Paramètres › Module d'IA** et dans `GET /api/systeme/info`.
 
 ```powershell
 # OpenAI
@@ -344,7 +375,9 @@ Parades aux pièges de la diapo 10 :
 | `REVIA_AI_PROVIDER` | Modèle par défaut | Remarque |
 |---|---|---|
 | `gemini` | `gemini-flash-lite-latest` | **LLM retenu (gratuit)**. Spring AI `OpenAiChatModel` sur le point d'accès compatible OpenAI de Google, réponse forcée en JSON (`response_format`), profil prod par défaut |
-| `groq` | `llama-3.3-70b-versatile` | Gratuit, compatible OpenAI |
+| `groq` | `openai/gpt-oss-120b` | Gratuit, compatible OpenAI (Llama 3.3 retiré par Groq le 16/08/2026) |
+| `openrouter` | `openrouter/free` | Gratuit. Routeur qui choisit un modèle `:free` disponible (`qwen/qwen3-coder:free` a été retiré en 2026) |
+| `mistral` | `codestral-latest` | Offre gratuite « Experiment », Codestral spécialisé code |
 | `ollama` | `qwen2.5-coder:1.5b` | Gratuit et local (http://localhost:11434), aucune clé |
 | `openai` | `gpt-4o-mini` | Spring AI `OpenAiChatModel` |
 | `anthropic` | `claude-sonnet-5-5` | Spring AI `AnthropicChatModel` |
@@ -409,10 +442,15 @@ Toutes les routes `/api/**` exigent `Authorization: Bearer <jwt>`, sauf mention 
 |---|---|---|
 | `SPRING_PROFILES_ACTIVE` | `dev` | `dev` (H2 + démo) ou `prod` (PostgreSQL) |
 | `PORT` | `8085` | Port HTTP |
-| `REVIA_AI_PROVIDER` | `demo` (dev) / `gemini` (prod) | `gemini`, `groq`, `ollama`, `openai`, `anthropic`, `demo` |
-| `REVIA_AI_MODEL` | *(vide)* | Modèle, ex. `gemini-flash-lite-latest`, `llama-3.3-70b-versatile` |
+| `REVIA_AI_PROVIDER` | `demo` (dev) / `gemini` (prod) | `gemini`, `groq`, `openrouter`, `mistral`, `ollama`, `openai`, `anthropic`, `demo` |
+| `REVIA_AI_FALLBACK` | *(vide)* (dev) / `groq,openrouter,mistral,demo` (prod) | Chaîne de relais si le principal échoue |
+| `GEMINI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` / `MISTRAL_API_KEY` | *(vide)* | Clé propre à chaque fournisseur |
+| `REVIA_AI_MODEL` | *(vide)* | Modèle imposé pour tout (revue, chat, outils), ex. `gemini-flash-latest`, `openai/gpt-oss-120b` |
+| `REVIA_AI_MAX_TOKENS_OUTILS` / `REVIA_AI_TIMEOUT_OUTILS` | `16384` / `180` | Budget de jetons et délai (s) des outils IA (plans de test, tests E2E…) |
+| `REVIA_IP_HEADER` | *(vide)* | En-tête de la vraie IP du client derrière un proxy : `x-vercel-forwarded-for` avec Vercel (limitation de débit) |
+| `REVIA_DEV_ADDRESS` | `127.0.0.1` | Profil dev uniquement : adresse d'écoute (mots de passe de démo connus → local par défaut) |
 | `REVIA_AI_TIMEOUT` | `30` | Délai max d'une analyse, en secondes |
-| `REVIA_AI_API_KEY` | *(vide)* | Clé du fournisseur (ou `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) |
+| `REVIA_AI_API_KEY` | *(vide)* | Clé du fournisseur principal (vide = sa clé propre, ex. `GEMINI_API_KEY`) |
 | `REVIA_AI_BASE_URL` | *(vide)* | URL compatible OpenAI (proxy, Ollama distant…) |
 | `DATABASE_URL` / `DATABASE_USER` / `DATABASE_PASSWORD` | `jdbc:postgresql://localhost:5432/revia` / `revia` | PostgreSQL (prod) |
 | `DATABASE_HOST` / `DATABASE_PORT` / `DATABASE_NAME` | `localhost` / `5432` / `revia` | Alternative à `DATABASE_URL` (utilisée par Render) |

@@ -1,0 +1,65 @@
+name: "RevIA code review"
+description: "AI code review, acceptance-criteria coverage and proven (executed + mutation-checked) tests on every pull request."
+branding:
+  icon: "shield"
+  color: "purple"
+inputs:
+  url:
+    description: "Base URL of your RevIA server"
+    required: true
+  token:
+    description: "RevIA personal API token (store it as a repository secret)"
+    required: true
+  min-score:
+    description: "Fail the check if a file scores below this value"
+    default: "70"
+  fail-on-critical:
+    description: "Fail the check when a critical issue is found"
+    default: "true"
+  language:
+    description: "Report language: en, fr, es, de, pt, it, nl, pl, tr, ar, ru, hi, zh, ja, ko"
+    default: "en"
+  acceptance-criteria:
+    description: "auto = check the PR against the acceptance criteria of its description (or ac-file); false = off"
+    default: "auto"
+  ac-file:
+    description: "File holding the user story / acceptance criteria (optional)"
+    default: ""
+  min-ac-coverage:
+    description: "Fail when acceptance-criteria coverage (%) is below this value (0 = report only)"
+    default: "0"
+  proven-tests:
+    description: "Generate tests, run them here, repair them until green and mutation-check them"
+    default: "false"
+  test-command:
+    description: "Command that runs one test file ({test} = path, {class} = class name); empty = default per language"
+    default: ""
+  min-mutation:
+    description: "Fail when generated tests catch fewer injected bugs (%) than this (0 = report only)"
+    default: "0"
+  comment:
+    description: "Post / update one summary comment on the pull request (needs pull-requests: write)"
+    default: "true"
+  github-token:
+    description: "Token used to comment on the pull request"
+    default: ${{ github.token }}
+runs:
+  using: "composite"
+  steps:
+    - name: Review changed files with RevIA
+      shell: bash
+      env:
+        REVIA_URL: ${{ inputs.url }}
+        REVIA_TOKEN: ${{ inputs.token }}
+        REVIA_MIN_SCORE: ${{ inputs.min-score }}
+        REVIA_FAIL_ON_CRITICAL: ${{ inputs.fail-on-critical }}
+        REVIA_LANG: ${{ inputs.language }}
+        REVIA_COMMENT: ${{ inputs.comment }}
+        REVIA_AC: ${{ inputs.acceptance-criteria }}
+        REVIA_AC_FILE: ${{ inputs.ac-file }}
+        REVIA_MIN_AC_COVERAGE: ${{ inputs.min-ac-coverage }}
+        REVIA_PROVEN_TESTS: ${{ inputs.proven-tests }}
+        REVIA_TEST_CMD: ${{ inputs.test-command }}
+        REVIA_MIN_MUTATION: ${{ inputs.min-mutation }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: python3 "${{ github.action_path }}/../revia_ci.py"

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { MONACO_LANG } from '../core/libelles';
 import { Probleme } from '../core/models';
+import { TPipe } from '../core/i18n';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const monaco: any;
@@ -17,11 +18,11 @@ const COULEUR: Record<string, string> = { critique: '#ef4444', majeure: '#f97316
 @Component({
   selector: 'app-code-editor',
   standalone: true,
-  imports: [FormsModule, MonacoEditorModule],
+  imports: [TPipe, FormsModule, MonacoEditorModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!pret()) {
-      <div class="chargement">Chargement de l'éditeur…</div>
+      <div class="chargement">{{ 'Chargement de l\\'éditeur…' | t }}</div>
     }
     <ngx-monaco-editor class="editeur" [options]="options()" [ngModel]="code()" (ngModelChange)="code.set($event)"
                        (onInit)="initialiser($event)" />

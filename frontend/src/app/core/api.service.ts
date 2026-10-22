@@ -2,7 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  FiltresHistorique, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo, TableauDeBord, Utilisateur,
+  AssistantReponse, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
+  TableauDeBord, Utilisateur,
 } from './models';
 
 /** Accès à l'API REST. Angular ne parle qu'à notre back-end Spring : la clé d'API ne quitte jamais le serveur. */
@@ -56,6 +57,37 @@ export class ApiService {
 
   changerMotDePasse(ancien: string, nouveau: string): Observable<void> {
     return this.http.put<void>('/api/me/mot-de-passe', { ancien, nouveau });
+  }
+
+  // ---------- assistant IA et outils IA
+  discuter(messages: MessageChat[], code?: string, langage?: string): Observable<AssistantReponse> {
+    return this.http.post<AssistantReponse>('/api/assistant/chat', { messages, code: code || null, langage: langage || null });
+  }
+
+  outil(outil: OutilIA, req: { code: string; langage: string; cible?: string }): Observable<AssistantReponse> {
+    return this.http.post<AssistantReponse>(`/api/assistant/outils/${outil}`, req);
+  }
+
+  /** Vérifie, critère par critère, que le diff de la PR implémente et teste la user story. */
+  criteres(req: { criteres: string; diff: string }): Observable<CouvertureCriteres> {
+    return this.http.post<CouvertureCriteres>('/api/assistant/criteres', req);
+  }
+
+  // ---------- intégrations (CI)
+  jetons(): Observable<JetonApi[]> {
+    return this.http.get<JetonApi[]>('/api/jetons');
+  }
+
+  creerJeton(nom: string): Observable<{ jeton: JetonApi; valeur: string }> {
+    return this.http.post<{ jeton: JetonApi; valeur: string }>('/api/jetons', { nom });
+  }
+
+  revoquerJeton(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/jetons/${id}`);
+  }
+
+  sarif(id: number): Observable<Blob> {
+    return this.http.get(`/api/revues/${id}/sarif`, { responseType: 'blob' });
   }
 
   systeme(): Observable<SystemeInfo> {

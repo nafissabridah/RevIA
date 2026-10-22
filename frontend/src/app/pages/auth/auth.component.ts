@@ -3,75 +3,77 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
+import { TPipe } from '../../core/i18n';
 
 /** S'authentifier / S'inscrire (cas d'utilisation « S'inscrire » étend « S'authentifier »). */
 @Component({
   selector: 'app-auth',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [TPipe, ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ecran">
       <section class="presentation">
-        <div class="eyebrow">Mini-projet · Sujet 4</div>
-        <h1 class="marque">Rev<span>IA</span></h1>
-        <p class="accroche">Votre assistant intelligent de revue de code</p>
-        <p class="texte">Il détecte les bugs, les mauvaises pratiques et les failles de sécurité, puis propose une correction expliquée.</p>
+        <a class="retour" routerLink="/">{{ '← Retour à l\\'accueil' | t }}</a>
+        <div class="eyebrow">{{ 'Revue de code IA · OWASP · CI' | t }}</div>
+        <h1 class="marque">{{ 'Rev' | t }}<span>{{ 'IA' | t }}</span></h1>
+        <p class="accroche">{{ 'Votre assistant intelligent de revue de code' | t }}</p>
+        <p class="texte">{{ 'Il détecte les bugs, les mauvaises pratiques et les failles de sécurité, puis propose une correction expliquée.' | t }}</p>
         <div class="apercu">
           <div class="fenetre">
             <div class="pastilles"><i></i><i></i><i></i><span>UserService.java</span></div>
             <pre><span class="n">3</span>  sql = <span class="s">"SELECT * FROM users WHERE id="</span> + id;</pre>
           </div>
           <div class="alerte">
-            <b>Injection SQL détectée · ligne 3</b>
-            <span>La valeur « id » est collée dans la requête. Utilisez une requête paramétrée (PreparedStatement).</span>
+            <b>{{ 'Injection SQL détectée · ligne 3' | t }}</b>
+            <span>{{ 'La valeur « id » est collée dans la requête. Utilisez une requête paramétrée (PreparedStatement).' | t }}</span>
           </div>
-          <div class="score">38<small>/ 100</small></div>
+          <div class="score">36<small>/ 100</small></div>
         </div>
       </section>
 
       <section class="formulaire">
         <form class="carte boite" [formGroup]="form" (ngSubmit)="valider()" novalidate>
-          <h2>{{ inscription() ? 'Créer un compte' : 'Connexion' }}</h2>
-          <p class="aide">{{ inscription() ? 'Gratuit · 50 revues par jour' : 'Heureux de vous revoir 👋' }}</p>
+          <h2>{{ inscription() ? ('Créer un compte' | t) : ('Connexion' | t) }}</h2>
+          <p class="aide">{{ inscription() ? ('Gratuit · 50 revues par jour' | t) : ('Heureux de vous revoir 👋' | t) }}</p>
 
           @if (inscription()) {
             <div class="champ">
-              <label for="nom">Nom</label>
-              <input id="nom" class="input" formControlName="nom" autocomplete="name" placeholder="Sarra A." />
-              @if (invalide('nom')) { <span class="erreur-champ">Le nom doit faire entre 2 et 80 caractères.</span> }
+              <label for="nom">{{ 'Nom' | t }}</label>
+              <input id="nom" class="input" formControlName="nom" autocomplete="name" [placeholder]="'Sarra A.' | t" />
+              @if (invalide('nom')) { <span class="erreur-champ">{{ 'Le nom doit faire entre 2 et 80 caractères.' | t }}</span> }
             </div>
           }
           <div class="champ">
-            <label for="email">E-mail</label>
+            <label for="email">{{ 'E-mail' | t }}</label>
             <input id="email" class="input" type="email" formControlName="email" autocomplete="email" placeholder="vous@exemple.fr" />
-            @if (invalide('email')) { <span class="erreur-champ">Saisissez un e-mail valide.</span> }
+            @if (invalide('email')) { <span class="erreur-champ">{{ 'Saisissez un e-mail valide.' | t }}</span> }
           </div>
           <div class="champ">
-            <label for="mdp">Mot de passe</label>
+            <label for="mdp">{{ 'Mot de passe' | t }}</label>
             <input id="mdp" class="input" type="password" formControlName="motDePasse"
                    [attr.autocomplete]="inscription() ? 'new-password' : 'current-password'" />
             @if (invalide('motDePasse')) {
-              <span class="erreur-champ">{{ inscription() ? '8 caractères minimum, avec au moins une lettre et un chiffre.' : 'Saisissez votre mot de passe.' }}</span>
+              <span class="erreur-champ">{{ inscription() ? ('8 caractères minimum, avec au moins une lettre et un chiffre.' | t) : ('Saisissez votre mot de passe.' | t) }}</span>
             }
           </div>
 
-          @if (erreur()) { <div class="message-erreur" role="alert">{{ erreur() }}</div> }
+          @if (erreur()) { <div class="message-erreur" role="alert">{{ erreur() | t }}</div> }
 
           <button class="btn primaire large" type="submit" [disabled]="envoi()">
             @if (envoi()) { <span class="spinner"></span> }
-            {{ inscription() ? "S'inscrire" : 'Se connecter' }}
+            {{ inscription() ? ("S'inscrire" | t) : ('Se connecter' | t) }}
           </button>
 
           <p class="bascule">
             @if (inscription()) {
-              Déjà un compte ? <a routerLink="/connexion">Se connecter</a>
+              {{ 'Déjà un compte ?' | t }} <a routerLink="/connexion">{{ 'Se connecter' | t }}</a>
             } @else {
-              Pas encore de compte ? <a routerLink="/inscription">S'inscrire</a>
+              {{ 'Pas encore de compte ?' | t }} <a routerLink="/inscription">{{ 'S\\'inscrire' | t }}</a>
             }
           </p>
         </form>
-        <p class="pied">Une IA ne remplace pas le relecteur humain : elle l'aide à se concentrer sur l'essentiel.</p>
+        <p class="pied">{{ 'Une IA ne remplace pas le relecteur humain : elle l\\'aide à se concentrer sur l\\'essentiel.' | t }}</p>
       </section>
     </div>
   `,
@@ -82,6 +84,8 @@ import { messageErreur } from '../../core/http';
                   radial-gradient(700px 500px at 10% 100%, #2b2160 0%, transparent 60%), #0b0e1d;
     }
     .presentation { padding: 9vh 6vw; display: flex; flex-direction: column; justify-content: center; }
+    .retour { color: #9aa0c8; text-decoration: none; font-size: 13px; margin-bottom: 26px; }
+    .retour:hover { color: #fff; }
     .eyebrow { letter-spacing: .25em; font-size: 12px; color: var(--accent-ia); font-weight: 700; text-transform: uppercase; }
     .marque { font-size: 92px; font-weight: 800; line-height: 1; margin: 18px 0 18px; letter-spacing: -.03em; }
     .marque span { color: var(--accent-ia); }

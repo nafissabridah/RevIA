@@ -1,0 +1,48 @@
+# Copy to .github/workflows/revia-review.yml in the repository to review.
+# Secrets: REVIA_TOKEN (RevIA > Settings > CI integration). Variable: REVIA_URL.
+name: RevIA review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  security-events: write   # upload SARIF to GitHub code scanning
+  pull-requests: write     # one summary comment on the PR, updated on each push
+jobs:
+  revia:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: RevIA review
+        id: revia
+        continue-on-error: true
+        uses: nafissabridah/RevIA/integrations/github@main
+        with:
+          url: ${{ vars.REVIA_URL }}
+          token: ${{ secrets.REVIA_TOKEN }}
+          min-score: "70"
+          # The PR description's "Acceptance criteria" section is checked automatically.
+          proven-tests: "true"          # tests generated, executed here, repaired, mutation-checked
+          # test-command: "python -m pytest -q {test}"   # set it up (setup-python / npm ci…) in a step above
+      - name: Upload findings to GitHub code scanning
+        if: always() && hashFiles('revia.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: revia.sarif
+          category: revia
+      - name: Keep the proven tests (download them, or commit them in a follow-up step)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: revia-proven-tests
+          path: |
+            tests/test_revia_*.py
+            **/*.revia.test.*
+            **/*ReviaTest.java
+            **/*_revia_test.go
+          if-no-files-found: ignore
+      - name: Enforce the quality gate
+        if: steps.revia.outcome == 'failure'
+        run: exit 1

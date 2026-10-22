@@ -3,13 +3,22 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+import { LangueService } from './langue.service';
 import { ErreurApi } from './models';
 
 /** Ajoute le jeton JWT ; sur 401, ferme la session et renvoie vers la connexion. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const jeton = auth.jeton;
-  const requete = jeton && req.url.startsWith('/api') ? req.clone({ setHeaders: { Authorization: `Bearer ${jeton}` } }) : req;
+  const enTetes: Record<string, string> = {};
+  if (req.url.startsWith('/api')) {
+    // Langue des réponses de l'IA : choix explicite (15 langues) ou, par défaut, celle de l'interface
+    enTetes['X-RevIA-Langue'] = inject(LangueService).langueReponses();
+    if (jeton) {
+      enTetes['Authorization'] = `Bearer ${jeton}`;
+    }
+  }
+  const requete = Object.keys(enTetes).length ? req.clone({ setHeaders: enTetes }) : req;
   return next(requete).pipe(
     catchError((e: HttpErrorResponse) => {
       if (e.status === 401 && !req.url.includes('/api/auth/')) {

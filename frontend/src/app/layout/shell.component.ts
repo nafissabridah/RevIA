@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
+import { LangueService } from '../core/langue.service';
 import { initiales } from '../core/libelles';
 import { IconeComponent } from '../shared/icone.component';
 
@@ -14,22 +16,27 @@ import { IconeComponent } from '../shared/icone.component';
   template: `
     <div class="cadre" [class.menu-ouvert]="menuOuvert()">
       <aside class="laterale" aria-label="Navigation principale">
-        <a class="logo" routerLink="/">
+        <a class="logo" routerLink="/revues/nouvelle">
           <span class="carre">R</span><span class="nom">Rev<span class="ia">IA</span></span>
         </a>
 
         <nav>
           @if (auth.estDeveloppeur()) {
-            <div class="section">Espace de travail</div>
-            <a routerLink="/revues/nouvelle" routerLinkActive="actif"><app-icone nom="nouvelle" />Nouvelle revue</a>
-            <a routerLink="/historique" routerLinkActive="actif"><app-icone nom="historique" />Historique
+            <div class="section">{{ l.t('Espace de travail', 'Workspace') }}</div>
+            <a routerLink="/revues/nouvelle" routerLinkActive="actif"><app-icone nom="nouvelle" />{{ l.t('Nouvelle revue', 'New review') }}</a>
+            <a routerLink="/historique" routerLinkActive="actif"><app-icone nom="historique" />{{ l.t('Historique', 'History') }}
               <span class="compteur">{{ auth.utilisateur()?.nbRevues ?? 0 }}</span></a>
-            <a routerLink="/tableau-de-bord" routerLinkActive="actif"><app-icone nom="tableau" />Tableau de bord</a>
-            <a routerLink="/parametres" routerLinkActive="actif"><app-icone nom="parametres" />Paramètres</a>
+            <a routerLink="/tableau-de-bord" routerLinkActive="actif"><app-icone nom="tableau" />{{ l.t('Tableau de bord', 'Dashboard') }}</a>
+            <div class="section">{{ l.t('IA pour dev & QA', 'AI for dev & QA') }}</div>
+            <a routerLink="/assistant" routerLinkActive="actif"><app-icone nom="chat" />{{ l.t('Assistant IA', 'AI assistant') }}@if (fournisseur()) {<span class="nouveau">{{ fournisseur() }}</span>}</a>
+            <a routerLink="/outils" routerLinkActive="actif"><app-icone nom="outils" />{{ l.t('Outils dev & QA', 'Dev & QA tools') }}</a>
+            <a routerLink="/criteres" routerLinkActive="actif"><app-icone nom="criteres" />{{ l.t('Couverture des critères', 'Acceptance coverage') }}</a>
+            <div class="section">{{ l.t('Compte', 'Account') }}</div>
+            <a routerLink="/parametres" routerLinkActive="actif"><app-icone nom="parametres" />{{ l.t('Paramètres', 'Settings') }}</a>
           }
           @if (auth.estAdmin()) {
             <div class="section">Administration</div>
-            <a routerLink="/admin" routerLinkActive="actif"><app-icone nom="utilisateurs" />Utilisateurs &amp; quotas</a>
+            <a routerLink="/admin" routerLinkActive="actif"><app-icone nom="utilisateurs" />{{ l.t('Utilisateurs & quotas', 'Users & quotas') }}</a>
             <a routerLink="/parametres" routerLinkActive="actif"><app-icone nom="parametres" />Paramètres</a>
           }
         </nav>
@@ -37,18 +44,20 @@ import { IconeComponent } from '../shared/icone.component';
         <div class="bas">
           @if (auth.estDeveloppeur()) {
             <div class="quota" [class.plein]="pourcentage() >= 100">
-              <div class="q-titre">Quota du jour</div>
+              <div class="q-titre">{{ l.t('Quota du jour', 'Daily quota') }}</div>
               <div class="jauge"><span [style.width.%]="pourcentage()"></span></div>
-              <div class="q-texte">{{ auth.utilisateur()?.revuesDuJour ?? 0 }} / {{ auth.utilisateur()?.quotaJournalier ?? 0 }} revues · réinitialisé à minuit</div>
+              <div class="q-texte">{{ auth.utilisateur()?.revuesDuJour ?? 0 }} / {{ auth.utilisateur()?.quotaJournalier ?? 0 }} {{ l.t('revues · réinitialisé à minuit', 'reviews · resets at midnight') }}</div>
             </div>
           }
           <div class="profil">
             <span class="avatar">{{ initiales(auth.utilisateur()?.nom) }}</span>
             <div class="qui">
               <div class="n">{{ auth.utilisateur()?.nom }}</div>
-              <div class="r">{{ auth.estAdmin() ? 'Administrateur' : 'Développeur' }}</div>
+              <div class="r">{{ auth.estAdmin() ? l.t('Administrateur', 'Administrator') : l.t('Développeur', 'Developer') }}</div>
             </div>
-            <button class="sortir" type="button" (click)="auth.deconnexion()" title="Se déconnecter" aria-label="Se déconnecter">
+            <button class="langue" type="button" (click)="l.basculer()" [title]="l.t('Switch to English', 'Passer en français')"
+                    [attr.aria-label]="l.t('Switch to English', 'Passer en français')">{{ l.langue() === 'fr' ? 'EN' : 'FR' }}</button>
+            <button class="sortir" type="button" (click)="auth.deconnexion()" [title]="l.t('Se déconnecter', 'Sign out')" [attr.aria-label]="l.t('Se déconnecter', 'Sign out')">
               <app-icone nom="deconnexion" />
             </button>
           </div>
@@ -83,6 +92,7 @@ import { IconeComponent } from '../shared/icone.component';
     }
     nav a:hover { background: var(--sidebar-2); }
     nav a.actif { background: var(--sidebar-2); color: #fff; box-shadow: inset 0 0 0 1px #2c3160; }
+    .nouveau { margin-left: auto; font-size: 10px; font-weight: 700; background: linear-gradient(135deg, #6d6af8, #4338ca); color: #fff; border-radius: 6px; padding: 1px 6px; }
     .compteur { margin-left: auto; font-size: 11px; background: #262b52; color: #b9bff0; border-radius: 6px; padding: 1px 7px; }
     .bas { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
     .quota { background: var(--sidebar-2); border: 1px solid #262b52; border-radius: 10px; padding: 12px; }
@@ -99,6 +109,8 @@ import { IconeComponent } from '../shared/icone.component';
     .qui { flex: 1; min-width: 0; }
     .n { color: #fff; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .r { color: #8b91bb; font-size: 11.5px; }
+    .langue { background: transparent; border: 1px solid #2c3160; color: #c9cdf0; border-radius: 7px; padding: 4px 7px; cursor: pointer; font-weight: 700; font-size: 11px; }
+    .langue:hover { border-color: #5b5bf6; color: #fff; }
     .sortir { background: none; border: none; color: #8b91bb; cursor: pointer; padding: 6px; border-radius: 8px; }
     .sortir:hover { background: var(--sidebar-2); color: #fff; }
     .contenu { min-width: 0; }
@@ -118,8 +130,15 @@ import { IconeComponent } from '../shared/icone.component';
 })
 export class ShellComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly l = inject(LangueService);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
   readonly menuOuvert = signal(false);
+  /** Fournisseur réellement configuré (et non une étiquette figée). */
+  readonly fournisseur = signal('');
+  private static readonly NOMS: Record<string, string> = {
+    demo: 'Démo', gemini: 'Gemini', groq: 'Groq', openrouter: 'OpenRouter', mistral: 'Mistral', ollama: 'Local', openai: 'OpenAI', anthropic: 'Claude',
+  };
   readonly initiales = initiales;
   readonly pourcentage = computed(() => {
     const u = this.auth.utilisateur();
@@ -129,5 +148,6 @@ export class ShellComponent implements OnInit {
 
   ngOnInit(): void {
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => this.menuOuvert.set(false));
+    this.api.systeme().subscribe({ next: (s) => this.fournisseur.set(ShellComponent.NOMS[s.fournisseur] ?? s.fournisseur), error: () => {} });
   }
 }

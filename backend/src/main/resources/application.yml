@@ -30,6 +30,7 @@ spring:
 
 server:
   port: ${PORT:8085}
+  shutdown: graceful
   error:
     include-message: never
     include-stacktrace: never
@@ -59,25 +60,50 @@ info:
   version: ${revia.version}
 
 revia:
-  version: 1.0.0
+  version: 1.3.0
   ai:
-    # groq | gemini | ollama (gratuits) · openai | anthropic (payants) · demo (analyseur à règles local, sans clé)
+    # gemini | groq | openrouter | mistral | ollama (gratuits) · openai | anthropic (payants) · demo (règles locales, sans clé)
     provider: ${REVIA_AI_PROVIDER:demo}
-    # Modèle choisi ici (ex. gpt-4o-mini, gpt-4.1, claude-sonnet-5-5...) ; vide = modèle par défaut du fournisseur
+    # Modèle choisi ici (ex. gemini-flash-latest, openai/gpt-oss-120b...) ; vide = modèle par défaut du fournisseur
     model: ${REVIA_AI_MODEL:}
-    # La clé ne quitte jamais le serveur : variable d'environnement uniquement
-    api-key: ${REVIA_AI_API_KEY:${OPENAI_API_KEY:${ANTHROPIC_API_KEY:}}}
+    # La clé ne quitte jamais le serveur : variable d'environnement uniquement.
+    # Vide = clé propre au fournisseur (GEMINI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY… voir « cles » ci-dessous)
+    api-key: ${REVIA_AI_API_KEY:}
     base-url: ${REVIA_AI_BASE_URL:}
     temperature: 0.2
-    timeout-sec: ${REVIA_AI_TIMEOUT:30}   # 30 s (présentation) ; à augmenter pour un modèle local sur CPU
+    timeout-sec: ${REVIA_AI_TIMEOUT:60}   # revue et chat ; à augmenter pour un modèle local sur CPU
     max-tokens: 4096
+    # Outils IA (tests, plans de test, E2E…) : réponses longues et réflexion complète du modèle
+    max-tokens-outils: ${REVIA_AI_MAX_TOKENS_OUTILS:16384}
+    timeout-outils-sec: ${REVIA_AI_TIMEOUT_OUTILS:180}
     max-lines: 2000
     chunk-lines: 300
     json-retries: 1
-    prompt-resource: classpath:prompts/revue-system.st
+    # Langue des rapports : revue-system.st (français) ou revue-system.en.st (anglais)
+    prompt-resource: ${REVIA_PROMPT:classpath:prompts/revue-system.st}
+    # Chaîne de secours (fournisseurs gratuits) quand le principal atteint son quota : ex. groq,openrouter,mistral,demo
+    fallback: ${REVIA_AI_FALLBACK:}
+    # Clés propres à chaque fournisseur (utilisées par la chaîne de secours, ou par le principal si REVIA_AI_API_KEY est vide)
+    cles:
+      gemini: ${GEMINI_API_KEY:}
+      groq: ${GROQ_API_KEY:}
+      openrouter: ${OPENROUTER_API_KEY:}
+      mistral: ${MISTRAL_API_KEY:}
+      openai: ${OPENAI_API_KEY:}
+      anthropic: ${ANTHROPIC_API_KEY:}
   security:
     jwt-secret: ${REVIA_JWT_SECRET:}
     jwt-minutes: ${REVIA_JWT_MINUTES:120}
+    # Derrière Vercel (réécriture /api → Render) : x-vercel-forwarded-for, sinon vide
+    ip-header: ${REVIA_IP_HEADER:}
+  essai:
+    # Essai gratuit sans compte (page d'accueil) : rien n'est enregistré
+    actif: ${REVIA_ESSAI_ACTIF:true}
+    max-lignes: ${REVIA_ESSAI_MAX_LIGNES:150}
+    par-minute-par-ip: ${REVIA_ESSAI_MINUTE:3}
+    par-jour-global: ${REVIA_ESSAI_JOUR:300}
+  integrations:
+    url-publique: ${REVIA_URL_PUBLIQUE:}
   quotas:
     revues-par-jour: ${REVIA_QUOTA_JOUR:50}
     analyses-par-minute: ${REVIA_ANALYSES_MINUTE:10}

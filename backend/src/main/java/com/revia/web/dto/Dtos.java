@@ -4,10 +4,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -87,6 +89,47 @@ public final class Dtos {
     public record PageDto<T>(List<T> contenu, int page, int taille, long total, int pages) {
     }
 
+    // ---------- Assistant IA et outils IA
+    public record MessageChat(
+            @NotBlank @Pattern(regexp = "utilisateur|assistant", message = "Rôle inconnu.") String role,
+            @NotBlank(message = "Écrivez votre question.") @Size(max = 8_000, message = "Message limité à 8 000 caractères.") String contenu) {
+    }
+
+    public record ChatRequest(
+            @NotEmpty(message = "Écrivez votre question.") @Size(max = 40, message = "Conversation trop longue : recommencez-en une.")
+            List<@Valid MessageChat> messages,
+            @Size(max = 200_000) String code,
+            @Size(max = 20) String langage) {
+    }
+
+    public record OutilRequest(
+            @NotBlank(message = "Collez votre code.") @Size(max = 200_000, message = "Code trop long.") String code,
+            @Size(max = 20) String langage,
+            // Langage cible, outil (Playwright…) ou contexte d'exécution des tests (chemins, commande)
+            @Size(max = 500, message = "Cible trop longue (500 caractères maximum).") String cible) {
+    }
+
+    public record AssistantReponse(String contenu, String outil, String langage, int nbMasquages, long dureeMs,
+                                   String fournisseur, String modele) {
+    }
+
+    /** Couverture des critères d'acceptation : user story (ou description de PR) + diff. */
+    public record CriteresRequest(
+            @NotBlank(message = "Collez les critères d'acceptation (ou la user story).")
+            @Size(max = 20_000, message = "Critères trop longs (20 000 caractères maximum).") String criteres,
+            @NotBlank(message = "Collez le diff de la pull request.")
+            @Size(max = 400_000, message = "Diff trop long.") String diff) {
+    }
+
+    public record CritereVerdict(String id, String texte, String statut, String explication, List<String> preuves,
+                                 String testManquant) {
+    }
+
+    public record CriteresReponse(List<CritereVerdict> criteres, int couverture, int nbCouverts, int nbPartiels,
+                                  int nbNonCouverts, String resume, int nbMasquages, long dureeMs, String fournisseur,
+                                  String modele) {
+    }
+
     // ---------- Administration
     public record QuotaRequest(@Min(value = 0, message = "Le quota doit être positif.") @Max(value = 10_000, message = "Quota maximum : 10 000.") int quota) {
     }
@@ -100,6 +143,27 @@ public final class Dtos {
     }
 
     public record SystemeInfo(String application, String version, String fournisseur, String modele, boolean disponible,
-                              double temperature, int timeoutSec, int quotaParDefaut, int maxLignes) {
+                              double temperature, int timeoutSec, int quotaParDefaut, int maxLignes,
+                              boolean essaiActif, int essaiMaxLignes, List<String> chaine) {
+    }
+
+    // ---------- Intégrations (CI, API, essai public)
+
+    public record JetonRequest(@Size(max = 80, message = "Le nom est limité à 80 caractères.") String nom) {
+    }
+
+    public record JetonDto(Long id, String nom, String apercu, LocalDateTime creeLe, LocalDateTime dernierUsage) {
+    }
+
+    /** Le jeton en clair n'est renvoyé qu'ici, une seule fois. */
+    public record JetonCree(JetonDto jeton, String valeur) {
+    }
+
+    /** Requête d'essai public : pas de mode, pas de titre obligatoire. */
+    public record EssaiRequest(
+            @Size(max = 160) String titre,
+            @Size(max = 20) String langage,
+            @NotBlank(message = "Collez un extrait de code.")
+            @Size(max = 20_000, message = "L'essai gratuit est limité à 150 lignes.") String code) {
     }
 }

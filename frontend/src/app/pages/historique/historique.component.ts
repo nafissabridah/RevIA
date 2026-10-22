@@ -12,6 +12,7 @@ import { FiltresHistorique, Page, RevueResume } from '../../core/models';
 import { NotifService } from '../../core/notif.service';
 import { StatutBadgeComponent } from '../../shared/badges';
 import { IconeComponent } from '../../shared/icone.component';
+import { TPipe } from '../../core/i18n';
 
 const SCORES: Record<string, [number | null, number | null]> = {
   tous: [null, null], faible: [0, 49], moyen: [50, 79], bon: [80, 100],
@@ -21,81 +22,81 @@ const SCORES: Record<string, [number | null, number | null]> = {
 @Component({
   selector: 'app-historique',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe, MatMenuModule, StatutBadgeComponent, IconeComponent],
+  imports: [TPipe, FormsModule, RouterLink, DatePipe, MatMenuModule, StatutBadgeComponent, IconeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="barre">
-      <div class="fil">Espace de travail / <b>Historique</b></div>
-      <button class="btn" type="button" (click)="exporter()" [disabled]="export()"><app-icone nom="export" />Exporter en CSV</button>
-      <a class="btn primaire" routerLink="/revues/nouvelle"><app-icone nom="nouvelle" />Nouvelle revue</a>
+      <div class="fil">{{ 'Espace de travail /' | t }} <b>{{ 'Historique' | t }}</b></div>
+      <button class="btn" type="button" (click)="exporter()" [disabled]="export()"><app-icone nom="export" />{{ 'Exporter en CSV' | t }}</button>
+      <a class="btn primaire" routerLink="/revues/nouvelle"><app-icone nom="nouvelle" />{{ 'Nouvelle revue' | t }}</a>
     </header>
 
     <div class="page">
-      <h1 class="titre-page">Historique des revues</h1>
-      <p class="sous-titre">Toutes vos analyses sont conservées : vous pouvez rouvrir une revue, comparer les scores et suivre vos progrès.</p>
+      <h1 class="titre-page">{{ 'Historique des revues' | t }}</h1>
+      <p class="sous-titre">{{ 'Toutes vos analyses sont conservées : vous pouvez rouvrir une revue, comparer les scores et suivre vos progrès.' | t }}</p>
 
       <div class="carte">
         <div class="filtres">
           <div class="recherche">
             <app-icone nom="recherche" />
-            <input class="input" type="search" placeholder="Rechercher un fichier, une méthode…" [ngModel]="q()"
-                   (ngModelChange)="saisie$.next($event)" aria-label="Rechercher" />
+            <input class="input" type="search" [placeholder]="'Rechercher un fichier, une méthode…' | t" [ngModel]="q()"
+                   (ngModelChange)="saisie$.next($event)" [attr.aria-label]="'Rechercher' | t" />
           </div>
-          <select class="input" [ngModel]="langage()" (ngModelChange)="langage.set($event); recharger()" aria-label="Langage">
-            <option value="">Langage : tous</option>
-            @for (l of langages; track l.valeur) { <option [value]="l.valeur">{{ l.libelle }}</option> }
+          <select class="input" [ngModel]="langage()" (ngModelChange)="langage.set($event); recharger()" [attr.aria-label]="'Langage' | t">
+            <option value="">{{ 'Langage : tous' | t }}</option>
+            @for (l of langages; track l.valeur) { <option [value]="l.valeur">{{ l.libelle | t }}</option> }
           </select>
-          <select class="input" [ngModel]="score()" (ngModelChange)="score.set($event); recharger()" aria-label="Score">
-            <option value="tous">Score : tous</option>
-            <option value="faible">Score &lt; 50</option>
-            <option value="moyen">Score 50 – 79</option>
-            <option value="bon">Score ≥ 80</option>
+          <select class="input" [ngModel]="score()" (ngModelChange)="score.set($event); recharger()" [attr.aria-label]="'Score' | t">
+            <option value="tous">{{ 'Score : tous' | t }}</option>
+            <option value="faible">{{ 'Score < 50' | t }}</option>
+            <option value="moyen">{{ 'Score 50 – 79' | t }}</option>
+            <option value="bon">{{ 'Score ≥ 80' | t }}</option>
           </select>
-          <select class="input" [ngModel]="statut()" (ngModelChange)="statut.set($event); recharger()" aria-label="Statut">
-            <option value="">Statut : tous</option>
-            <option value="a_corriger">À corriger</option>
-            <option value="a_revoir">À revoir</option>
-            <option value="corrigee">Corrigée</option>
+          <select class="input" [ngModel]="statut()" (ngModelChange)="statut.set($event); recharger()" [attr.aria-label]="'Statut' | t">
+            <option value="">{{ 'Statut : tous' | t }}</option>
+            <option value="a_corriger">{{ 'À corriger' | t }}</option>
+            <option value="a_revoir">{{ 'À revoir' | t }}</option>
+            <option value="corrigee">{{ 'Corrigée' | t }}</option>
           </select>
-          <select class="input" [ngModel]="jours()" (ngModelChange)="jours.set(+$event); recharger()" aria-label="Période">
-            <option [value]="7">7 derniers jours</option>
-            <option [value]="30">30 derniers jours</option>
-            <option [value]="90">90 derniers jours</option>
-            <option [value]="0">Toute la période</option>
+          <select class="input" [ngModel]="jours()" (ngModelChange)="jours.set(+$event); recharger()" [attr.aria-label]="'Période' | t">
+            <option [value]="7">{{ '7 derniers jours' | t }}</option>
+            <option [value]="30">{{ '30 derniers jours' | t }}</option>
+            <option [value]="90">{{ '90 derniers jours' | t }}</option>
+            <option [value]="0">{{ 'Toute la période' | t }}</option>
           </select>
         </div>
 
         <div class="defile">
           <table>
             <thead>
-              <tr><th>Extrait analysé</th><th>Langage</th><th>Date</th><th>Score</th><th>Problèmes</th><th>Statut</th><th><span class="sr-only">Actions</span></th></tr>
+              <tr><th>{{ 'Extrait analysé' | t }}</th><th>{{ 'Langage' | t }}</th><th>{{ 'Date' | t }}</th><th>{{ 'Score' | t }}</th><th>{{ 'Problèmes' | t }}</th><th>{{ 'Statut' | t }}</th><th><span class="sr-only">{{ 'Actions' | t }}</span></th></tr>
             </thead>
             <tbody>
               @for (r of page()?.contenu ?? []; track r.id) {
                 <tr (click)="ouvrir(r)" tabindex="0" (keydown.enter)="ouvrir(r)">
                   <td class="titre">{{ r.titre }}</td>
-                  <td><span class="badge langage">{{ libelleLangage(r.langage) }}</span></td>
-                  <td class="date">{{ r.creeLe | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td><span class="badge langage">{{ libelleLangage(r.langage) | t }}</span></td>
+                  <td class="date">{{ r.creeLe | date: ('dd/MM/yyyy HH:mm' | t) }}</td>
                   <td>
                     <div class="score"><span class="barre-score"><span [style.width.%]="r.score" [style.background]="couleur(r.score)"></span></span>
                       <b [style.color]="couleur(r.score)">{{ r.score }}</b></div>
                   </td>
-                  <td>{{ r.nbProblemes }} @if (r.nbCritiques) { <span class="crit">({{ r.nbCritiques }} crit.)</span> }</td>
+                  <td>{{ r.nbProblemes }} @if (r.nbCritiques) { <span class="crit">({{ r.nbCritiques }} {{ 'crit.)' | t }}</span> }</td>
                   <td><app-statut [valeur]="r.statut" /></td>
                   <td class="plus" (click)="$event.stopPropagation()">
-                    <button class="btn petit" type="button" [matMenuTriggerFor]="menu" aria-label="Actions">⋯</button>
+                    <button class="btn petit" type="button" [matMenuTriggerFor]="menu" [attr.aria-label]="'Actions' | t">⋯</button>
                     <mat-menu #menu="matMenu">
-                      <button mat-menu-item (click)="ouvrir(r)">Ouvrir la revue</button>
-                      <button mat-menu-item (click)="supprimer(r)">Supprimer</button>
+                      <button mat-menu-item (click)="ouvrir(r)">{{ 'Ouvrir la revue' | t }}</button>
+                      <button mat-menu-item (click)="supprimer(r)">{{ 'Supprimer' | t }}</button>
                     </mat-menu>
                   </td>
                 </tr>
               } @empty {
                 <tr><td colspan="7">
                   <div class="vide">
-                    @if (chargement()) { Chargement… } @else {
-                      <div class="grand">🗂️</div>Aucune revue ne correspond à ces filtres.
-                      <br /><a routerLink="/revues/nouvelle">Lancer une nouvelle revue</a>
+                    @if (chargement()) { {{ 'Chargement…' | t }} } @else {
+                      <div class="grand">🗂️</div>{{ 'Aucune revue ne correspond à ces filtres.' | t }}
+                      <br /><a routerLink="/revues/nouvelle">{{ 'Lancer une nouvelle revue' | t }}</a>
                     }
                   </div>
                 </td></tr>
@@ -107,13 +108,13 @@ const SCORES: Record<string, [number | null, number | null]> = {
         @if (page(); as p) {
           @if (p.total > 0) {
             <div class="pagination">
-              <span>Affichage de {{ p.page * p.taille + 1 }} à {{ min(p.total, (p.page + 1) * p.taille) }} sur {{ p.total }} revues</span>
+              <span>{{ 'Affichage de' | t }} {{ p.page * p.taille + 1 }} {{ 'à' | t }} {{ min(p.total, (p.page + 1) * p.taille) }} {{ 'sur' | t }} {{ p.total }} {{ 'revues' | t }}</span>
               <div class="pages">
-                <button class="btn petit" type="button" [disabled]="p.page === 0" (click)="aller(p.page - 1)" aria-label="Page précédente">‹</button>
+                <button class="btn petit" type="button" [disabled]="p.page === 0" (click)="aller(p.page - 1)" [attr.aria-label]="'Page précédente' | t">‹</button>
                 @for (n of numeros(); track n) {
                   <button class="btn petit" type="button" [class.courante]="n === p.page" (click)="aller(n)">{{ n + 1 }}</button>
                 }
-                <button class="btn petit" type="button" [disabled]="p.page >= p.pages - 1" (click)="aller(p.page + 1)" aria-label="Page suivante">›</button>
+                <button class="btn petit" type="button" [disabled]="p.page >= p.pages - 1" (click)="aller(p.page + 1)" [attr.aria-label]="'Page suivante' | t">›</button>
               </div>
             </div>
           }

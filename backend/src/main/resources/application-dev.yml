@@ -1,4 +1,9 @@
 # Profil dev : base H2 sur disque (aucune installation), données de démonstration, fournisseur demo par défaut.
+# Mots de passe de démonstration connus : le serveur n'écoute que sur la machine locale (sécurité si le profil prod
+# est oublié sur un serveur). Pour une démo sur le réseau local : REVIA_DEV_ADDRESS=0.0.0.0
+server:
+  address: ${REVIA_DEV_ADDRESS:127.0.0.1}
+
 spring:
   datasource:
     url: jdbc:h2:file:${REVIA_DATA_DIR:./data}/revia-dev;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;AUTO_SERVER=FALSE
