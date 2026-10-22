@@ -307,3 +307,52 @@ export interface ErreurApi {
   status: number;
   champs?: Record<string, string>;
 }
+
+// ----- Projets : traçabilité exigence → critère → code → test → verdict QA (v1.6)
+export type StatutCritereProjet = StatutCritere | 'non_verifie';
+export type VerdictQa = 'a_tester' | 'valide' | 'rejete';
+
+export interface SyntheseProjet {
+  nbExigences: number;
+  nbCriteres: number;
+  nbCouverts: number;
+  nbPartiels: number;
+  nbNonCouverts: number;
+  nbNonVerifies: number;
+  couverture: number;
+  nbValidesQa: number;
+  nbRejetesQa: number;
+}
+
+export interface ProjetResume {
+  id: number;
+  nom: string;
+  description: string | null;
+  creeLe: string;
+  synthese: SyntheseProjet;
+}
+
+export interface CritereProjet {
+  id: number;
+  reference: string;
+  texte: string;
+  statut: StatutCritereProjet;
+  preuve: string | null;
+  test: string | null;
+  verdictQa: VerdictQa | null;
+  commentaireQa: string | null;
+  modifieLe: string;
+}
+
+export interface Exigence {
+  id: number;
+  reference: string;
+  titre: string;
+  texte: string;
+  creeLe: string;
+  criteres: CritereProjet[];
+}
+
+export interface ProjetDetail extends ProjetResume {
+  exigences: Exigence[];
+}

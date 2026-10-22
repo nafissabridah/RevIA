@@ -1,5 +1,9 @@
 # RevIA – AI code review and QA toolbox, with a CI quality gate
 
+**New in 1.6 — project traceability:** paste user stories into a project, criteria are extracted automatically,
+checked against a PR diff (status, evidence, missing test) and signed off by QA; project coverage and a CSV
+traceability matrix (requirement → criterion → code → test → QA verdict). API: `/api/projets`.
+
 **New in 1.5 — business analysis for every industry:** flowchart → test cases (Mermaid, BPMN 2.0, draw.io or an image),
 requirements writing and review, and YAML domain packs (finance, insurance, banking & payments, health, e-commerce, HR,
 public sector) applied to every AI tool.

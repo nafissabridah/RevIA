@@ -158,6 +158,50 @@ public final class Dtos {
                                   String modele) {
     }
 
+    // ---------- Projets : traçabilité exigence → critère → code → test → verdict QA
+
+    public record ProjetRequest(
+            @NotBlank(message = "Le nom du projet est obligatoire.") @Size(max = 120, message = "Le nom est limité à 120 caractères.") String nom,
+            @Size(max = 2000, message = "La description est limitée à 2 000 caractères.") String description) {
+    }
+
+    public record ExigenceRequest(
+            @Size(max = 40, message = "La référence est limitée à 40 caractères.") String reference,
+            @NotBlank(message = "Le titre de l'exigence est obligatoire.") @Size(max = 200, message = "Le titre est limité à 200 caractères.") String titre,
+            @NotBlank(message = "Collez la user story et ses critères d'acceptation.")
+            @Size(max = 20_000, message = "Exigence trop longue (20 000 caractères maximum).") String texte) {
+    }
+
+    public record VerificationExigenceRequest(
+            @NotBlank(message = "Collez le diff de la pull request.") @Size(max = 400_000, message = "Diff trop long.") String diff,
+            @Size(max = 300, message = "Référence du code limitée à 300 caractères.") String cible) {
+    }
+
+    public record VerdictQaRequest(
+            @Pattern(regexp = "a_tester|valide|rejete", message = "Verdict QA inconnu.") String verdictQa,
+            @Size(max = 2000, message = "Commentaire limité à 2 000 caractères.") String commentaireQa) {
+    }
+
+    /** Synthèse : couverture = (couverts + 0,5 × partiels) / nombre de critères, en %. */
+    public record SyntheseProjet(int nbExigences, int nbCriteres, int nbCouverts, int nbPartiels, int nbNonCouverts,
+                                 int nbNonVerifies, int couverture, int nbValidesQa, int nbRejetesQa) {
+    }
+
+    public record ProjetResume(Long id, String nom, String description, LocalDateTime creeLe, SyntheseProjet synthese) {
+    }
+
+    public record CritereProjetDto(Long id, String reference, String texte, String statut, String preuve, String test,
+                                   String verdictQa, String commentaireQa, LocalDateTime modifieLe) {
+    }
+
+    public record ExigenceDto(Long id, String reference, String titre, String texte, LocalDateTime creeLe,
+                              List<CritereProjetDto> criteres) {
+    }
+
+    public record ProjetDetail(Long id, String nom, String description, LocalDateTime creeLe, SyntheseProjet synthese,
+                               List<ExigenceDto> exigences) {
+    }
+
     // ---------- Administration
     public record QuotaRequest(@Min(value = 0, message = "Le quota doit être positif.") @Max(value = 10_000, message = "Quota maximum : 10 000.") int quota) {
     }
@@ -201,7 +245,8 @@ public final class Dtos {
 
     /** Export RGPD (droit d'accès / portabilité) : jamais de hash de mot de passe ni d'empreinte de jeton. */
     public record ExportCompte(LocalDateTime genereLe, String application, UtilisateurDto compte,
-                               AbonnementDto abonnement, List<JetonDto> jetonsApi, List<RevueDetail> revues) {
+                               AbonnementDto abonnement, List<JetonDto> jetonsApi, List<RevueDetail> revues,
+                               List<ProjetDetail> projets) {
     }
 
     // ---------- Intégrations (CI, API, essai public)

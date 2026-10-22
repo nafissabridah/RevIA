@@ -407,9 +407,12 @@ def run_tests(cmd_template, tpath, timeout=300):
     stem = os.path.splitext(os.path.basename(tpath))[0]
     cmd = cmd_template.replace("{test}", quote(tpath)).replace("{class}", stem) \
         .replace("{dir}", os.path.dirname(tpath) or ".")
+    # No .pyc: Python validates its cache by mtime (seconds) + size, and a same-size mutant written in the same second
+    # would otherwise be run from the previous mutant's bytecode, even after the source is restored (found in a real run)
+    env_run = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     try:
         p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                           errors="replace", timeout=timeout)
+                           errors="replace", timeout=timeout, env=env_run)
         if p.returncode == 0 and NO_TESTS_RAN.search(p.stdout or "") and not SOME_TESTS_RAN.search(p.stdout or ""):
             # A green run that executed nothing proves nothing (e.g. the AI returned the source instead of tests)
             return False, (p.stdout or "") + "\nREVIA: no test was executed - the file must contain real test cases."

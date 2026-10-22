@@ -5,6 +5,11 @@
 > Application web (Angular + Spring Boot + PostgreSQL) où l'on colle son code et où l'IA le relit comme un développeur senior :
 > elle détecte les bugs, les mauvaises pratiques et les failles de sécurité, puis propose une **correction expliquée**.
 
+> **Nouveau (v1.6) — traçabilité par projet** : page **Projets** où l'on colle ses user stories (ou la sortie de la
+> rédaction d'exigences) ; les critères d'acceptation sont extraits automatiquement, vérifiés sur le diff d'une PR
+> (statut, preuve, test manquant), puis validés ou rejetés par le QA. Couverture du projet et **matrice de traçabilité
+> CSV** (exigence → critère → code → test → verdict QA).
+
 > **Nouveau (v1.5) — l'analyse métier (BA), pour tous les secteurs** :
 > - **Flowchart → tests** : collez un diagramme **Mermaid, BPMN 2.0 ou draw.io** (ou une image, transcrite par un modèle
 >   multimodal comme Gemini) ; RevIA calcule **sans IA** tous les chemins, les défauts (branche manquante, impasse, étape
@@ -437,6 +442,12 @@ Toutes les routes `/api/**` exigent `Authorization: Bearer <jwt>`, sauf mention 
 | GET / PUT | `/api/me` | Profil (quota du jour inclus) / modifier son nom |
 | PUT | `/api/me/mot-de-passe` | Changer de mot de passe |
 | POST | `/api/revues` | Soumettre un extrait `{titre?, langage, code, mode, metier?}` → rapport |
+| GET / POST | `/api/projets` | Lister ses projets (avec synthèse de couverture) / créer `{nom, description?}` |
+| GET / DELETE | `/api/projets/{id}` | Détail (exigences + critères) / supprimer — 404 pour le projet d'un autre utilisateur |
+| POST | `/api/projets/{id}/exigences` | Ajouter une exigence `{reference?, titre, texte}` : critères extraits automatiquement |
+| POST | `/api/projets/{id}/exigences/{eid}/verifier` | Vérifier les critères sur un diff `{diff, cible?}` (même contrôle que `/api/assistant/criteres`) |
+| PATCH | `/api/projets/{id}/criteres/{cid}` | Verdict QA `{verdictQa: a_tester\|valide\|rejete, commentaireQa?}` |
+| GET | `/api/projets/{id}/matrice.csv` | Matrice de traçabilité CSV (protégée contre l'injection de formules) |
 | GET | `/api/metiers` | Packs métier disponibles (id, noms FR/EN, description, nombre de règles / pièges / réglementations) |
 | POST | `/api/assistant/outils/{outil}` · `/flux` | Outils IA `{code, langage?, cible?, metier?}` (dont `redaction-exigences`, `revue-exigences`) |
 | POST | `/api/assistant/flowchart` | `{source, format?: auto\|mermaid\|bpmn\|drawio, metier?, enrichir?}` ou `{image: base64 ≤ 4 Mo, metier?}` → chemins, problèmes, cas de test, Mermaid, enrichissement IA |

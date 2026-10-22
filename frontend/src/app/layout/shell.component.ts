@@ -28,6 +28,7 @@ import { IconeComponent } from '../shared/icone.component';
               <span class="compteur">{{ auth.utilisateur()?.nbRevues ?? 0 }}</span></a>
             <a routerLink="/tableau-de-bord" routerLinkActive="actif"><app-icone nom="tableau" />{{ l.t('Tableau de bord', 'Dashboard') }}</a>
             <div class="section">{{ l.t('Analyse métier (BA)', 'Business analysis (BA)') }}</div>
+            <a routerLink="/projets" routerLinkActive="actif"><app-icone nom="drapeau" />{{ l.t('Projets (traçabilité)', 'Projects (traceability)') }}<span class="nouveau">{{ l.t('Nouveau', 'New') }}</span></a>
             <a routerLink="/outils" [queryParams]="{ outil: 'redaction-exigences' }" routerLinkActive="actif" [routerLinkActiveOptions]="{ exact: true }"><app-icone nom="crayon" />{{ l.t('Rédaction d’exigences', 'Requirements writing') }}</a>
             <a routerLink="/outils" [queryParams]="{ outil: 'revue-exigences' }" routerLinkActive="actif" [routerLinkActiveOptions]="{ exact: true }"><app-icone nom="recherche" />{{ l.t('Revue d’exigences', 'Requirements review') }}</a>
             <a routerLink="/flowchart" routerLinkActive="actif"><app-icone nom="flux" />{{ l.t('Flowchart → tests', 'Flowchart → tests') }}<span class="nouveau">{{ l.t('Nouveau', 'New') }}</span></a>

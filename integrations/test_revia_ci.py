@@ -41,6 +41,27 @@ class TestMutants(unittest.TestCase):
         self.assertEqual(muts[2][2], "return False")
         self.assertEqual(ci.mutants(code, 0), [])
 
+    def test_same_size_mutant_is_not_run_from_stale_bytecode(self):
+        # Seen in a real run: "a - b" -> "a + b" written in the same second kept the old .pyc
+        import shutil
+        import tempfile
+        d = tempfile.mkdtemp()
+        try:
+            src = os.path.join(d, "calc.py")
+            code = "def diff(a, b):\n    return a - b\n"
+            with open(src, "w", newline="") as fh:
+                fh.write(code)
+            with open(os.path.join(d, "test_calc.py"), "w") as fh:
+                fh.write("import unittest\nfrom calc import diff\n\n\nclass T(unittest.TestCase):\n"
+                         "    def test_diff(self):\n        self.assertEqual(diff(3, 1), 2)\n")
+            cmd = 'cd %s && "%s" -m unittest test_calc' % (ci.quote(d), sys.executable)
+            self.assertTrue(ci.run_tests(cmd, "test_calc.py")[0])
+            score, _ = ci.mutation_score(src, code, cmd, "test_calc.py", 5)
+            self.assertEqual(score, 100)
+            self.assertFalse(os.path.isdir(os.path.join(d, "__pycache__")))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
 
 class TestInline(unittest.TestCase):
     def test_hunks_to_changed_lines(self):

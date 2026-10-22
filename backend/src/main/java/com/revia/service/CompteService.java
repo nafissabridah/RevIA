@@ -31,15 +31,17 @@ public class CompteService {
     private final UtilisateurRepository utilisateurs;
     private final RevueRepository revues;
     private final JetonApiService jetons;
+    private final ProjetService projets;
     private final QuotaService quotas;
     private final PaddleService paddle;
     private final PasswordEncoder encoder;
 
     public CompteService(UtilisateurRepository utilisateurs, RevueRepository revues, JetonApiService jetons,
-                         QuotaService quotas, PaddleService paddle, PasswordEncoder encoder) {
+                         ProjetService projets, QuotaService quotas, PaddleService paddle, PasswordEncoder encoder) {
         this.utilisateurs = utilisateurs;
         this.revues = revues;
         this.jetons = jetons;
+        this.projets = projets;
         this.quotas = quotas;
         this.paddle = paddle;
         this.encoder = encoder;
@@ -54,11 +56,11 @@ public class CompteService {
         List<Dtos.RevueDetail> detail = revues.findByAuteurIdOrderByCreeLeAsc(userId).stream()
                 .map(r -> Mapper.detail(r, p -> 0L)).toList();
         return new Dtos.ExportCompte(LocalDateTime.now(), "RevIA", Mapper.utilisateur(u, (long) detail.size()),
-                paddle.dto(u), jetons.lister(userId), detail);
+                paddle.dto(u), jetons.lister(userId), detail, projets.exporter(userId));
     }
 
     /**
-     * Supprime définitivement le compte et ses données (revues, problèmes, corrections, jetons : suppression en
+     * Supprime définitivement le compte et ses données (revues, problèmes, corrections, jetons, projets : suppression en
      * cascade dans la base). Un abonnement Paddle en cours n'est PAS résilié automatiquement : l'utilisateur en est
      * averti (et un avertissement est journalisé) pour le résilier depuis le portail Paddle ou son reçu.
      */

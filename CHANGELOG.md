@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.6.0 – 2026-10-22
+### Added: project traceability (requirement → criterion → code → test → QA verdict)
+- **Projects** (page "Projets (traçabilité)", routes `/projets` and `/projets/:id`): one screen per project shows the
+  whole chain so BA, developers and QA see coverage end to end. Flyway `V4__projets_tracabilite.sql` adds `projet`,
+  `exigence` and `critere` (H2 / PostgreSQL compatible, `ON DELETE CASCADE` from the user).
+- `POST /api/projets/{id}/exigences` `{reference?, titre, texte ≤ 20 000}`: the criteria are extracted **without AI**
+  by the existing acceptance-criteria extractor (`AC-n` lines first, then Gherkin scenarios, then bullets), stored as
+  AC-01… with status `non_verifie`. Paste a user story or the output of the `redaction-exigences` tool.
+- `POST /api/projets/{id}/exigences/{eid}/verifier` `{diff, cible?}` runs the same check as
+  `POST /api/assistant/criteres` (secret masking, `X-RevIA-Langue`, per-minute AI rate limit, demo mode) and stores
+  status, evidence (prefixed with the optional code reference, e.g. `[PR #42]`) and missing test per criterion. The
+  AI call runs outside any database transaction.
+- `PATCH /api/projets/{id}/criteres/{cid}` `{verdictQa: a_tester|valide|rejete|null, commentaireQa?}` for the QA
+  verdict; `GET /api/projets/{id}/matrice.csv` exports the traceability matrix (requirement, criterion, status,
+  evidence, test, QA verdict, comment; `;` separator, UTF-8 BOM, cells starting with `= + - @` prefixed with `'`).
+- Per-project summary: criteria count, coverage % = (covered + 0.5 × partial) / n, QA validated / rejected counts.
+- `GET /api/projets`, `POST /api/projets`, `GET` / `DELETE /api/projets/{id}`. Strictly per user: another user's
+  project id answers 404. Limits: 100 projects per user, 200 requirements per project.
+### Changed
+- GDPR: `GET /api/compte/export` now includes `projets` (requirements and criteria); account deletion removes them.
+- Test generation prompt: each bound is compared with its documentation ("à partir de 50" / "at least" means `>=`);
+  a mismatch is reported as a likely bug instead of being locked in by a test.
+- Tests: backend 119 → 122, frontend 42 → 45, CI script 6 → 7.
+### Fixed (found by the first real proven-tests run with free Gemini, 2026-10-22: tests green, 86 % mutation score)
+- Gemini Flash answering **503 "high demand"** (frequent on the free tier) made the QA tools fall to the next provider:
+  they now fall back to Flash-Lite, as on a 429 quota error.
+- **Proven tests, Python**: a same-size mutant (`-` → `+`) written in the same second was run from the previous
+  bytecode cache, skewing the mutation score, and a stale `.pyc` of the last mutant could stay behind for the next CI
+  steps. Tests now run with `PYTHONDONTWRITEBYTECODE=1` (regression test included).
+
+
 ## 1.5.0 – 2026-10-22
 ### Added: business analysis (BA) for every industry
 - **Flowchart → tests** (`POST /api/assistant/flowchart`, page "Flowchart → tests"): Mermaid `flowchart`/`graph`

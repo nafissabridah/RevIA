@@ -134,12 +134,16 @@ public class SpringAiLlmClient implements LlmClient {
         return (optionsOutils == null ? r : r.options(optionsOutils)).call().content();
     }
 
-    /** Quota du modèle des outils atteint et un modèle de repli existe : on ne dérange pas l'utilisateur. */
+    /**
+     * Quota du modèle des outils atteint, ou modèle surchargé (503 « high demand », fréquent sur les offres
+     * gratuites), et un modèle de repli existe : on ne dérange pas l'utilisateur.
+     */
     private boolean quotaAvecRepli(Throwable e) {
-        if (optionsOutilsRepli == null || AnalyseurIA.traduire(e).getCode() != ErrorCode.LLM_QUOTA) {
+        ErrorCode code = AnalyseurIA.traduire(e).getCode();
+        if (optionsOutilsRepli == null || (code != ErrorCode.LLM_QUOTA && code != ErrorCode.LLM_INDISPONIBLE)) {
             return false;
         }
-        log.warn("Quota du modèle des outils atteint chez {} : repli sur {}", fournisseur, modele);
+        log.warn("Modèle des outils indisponible chez {} ({}) : repli sur {}", fournisseur, code, modele);
         return true;
     }
 

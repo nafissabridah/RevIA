@@ -55,7 +55,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain chain) throws ServletException, IOException {
         Bucket bucket = null;
         String uri = req.getRequestURI();
-        if ("POST".equals(req.getMethod()) && (uri.equals("/api/revues") || uri.startsWith("/api/assistant/"))) {
+        if ("POST".equals(req.getMethod()) && (uri.equals("/api/revues") || uri.startsWith("/api/assistant/")
+                || (uri.startsWith("/api/projets/") && uri.endsWith("/verifier")))) {
             Authentication a = SecurityContextHolder.getContext().getAuthentication();
             if (a != null && a.getPrincipal() instanceof UtilisateurConnecte u) {
                 bucket = analyses.get("u" + u.id(), () -> nouveau(quotas.analysesParMinute()));

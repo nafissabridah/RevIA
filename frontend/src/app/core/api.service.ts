@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  Abonnement, AbonnementConfig, AnalyseFlowchart, AssistantReponse, FlowchartRequete, Metier, SuppressionCompte, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
+  Abonnement, AbonnementConfig, AnalyseFlowchart, AssistantReponse, FlowchartRequete, Metier, SuppressionCompte, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, ProjetDetail, ProjetResume, CritereProjet, VerdictQa, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
   TableauDeBord, Utilisateur,
 } from './models';
 
@@ -71,6 +71,41 @@ export class ApiService {
   /** Vérifie, critère par critère, que le diff de la PR implémente et teste la user story. */
   criteres(req: { criteres: string; diff: string }): Observable<CouvertureCriteres> {
     return this.http.post<CouvertureCriteres>('/api/assistant/criteres', req);
+  }
+
+  // ----- Projets : traçabilité exigence → critère → code → test → verdict QA
+  projets(): Observable<ProjetResume[]> {
+    return this.http.get<ProjetResume[]>('/api/projets');
+  }
+
+  projet(id: number): Observable<ProjetDetail> {
+    return this.http.get<ProjetDetail>(`/api/projets/${id}`);
+  }
+
+  creerProjet(req: { nom: string; description?: string | null }): Observable<ProjetDetail> {
+    return this.http.post<ProjetDetail>('/api/projets', req);
+  }
+
+  supprimerProjet(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/projets/${id}`);
+  }
+
+  /** Ajoute une exigence : les critères d'acceptation sont extraits automatiquement côté serveur. */
+  ajouterExigence(id: number, req: { reference?: string | null; titre: string; texte: string }): Observable<ProjetDetail> {
+    return this.http.post<ProjetDetail>(`/api/projets/${id}/exigences`, req);
+  }
+
+  /** Vérifie les critères d'une exigence sur le diff d'une PR et enregistre statuts, preuves et tests manquants. */
+  verifierExigence(id: number, exigenceId: number, req: { diff: string; cible?: string | null }): Observable<ProjetDetail> {
+    return this.http.post<ProjetDetail>(`/api/projets/${id}/exigences/${exigenceId}/verifier`, req);
+  }
+
+  verdictQa(id: number, critereId: number, req: { verdictQa: VerdictQa | null; commentaireQa: string | null }): Observable<CritereProjet> {
+    return this.http.patch<CritereProjet>(`/api/projets/${id}/criteres/${critereId}`, req);
+  }
+
+  matriceCsv(id: number): Observable<Blob> {
+    return this.http.get(`/api/projets/${id}/matrice.csv`, { responseType: 'blob' });
   }
 
   /** Packs métier proposés dans le sélecteur « Métier ». */

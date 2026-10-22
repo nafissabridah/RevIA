@@ -17,11 +17,16 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.retry.TransientAiException;
 
 class SpringAiLlmClientTest {
 
     /** Modèle simulé : le modèle « puissant » des outils est à court de quota, le modèle par défaut répond. */
     private static ChatModel modele(List<String> appels, String enPanne) {
+        return modele(appels, enPanne, "HTTP 429 - quota exceeded for ");
+    }
+
+    private static ChatModel modele(List<String> appels, String enPanne, String erreur) {
         ChatModel m = mock(ChatModel.class);
         when(m.getDefaultOptions()).thenReturn(OpenAiChatOptions.builder().model("lite").build());
         when(m.call(any(Prompt.class))).thenAnswer(i -> {
@@ -30,7 +35,7 @@ class SpringAiLlmClientTest {
             String nom = p.getOptions() == null || p.getOptions().getModel() == null ? "lite" : p.getOptions().getModel();
             appels.add(nom);
             if (nom.equals(enPanne)) {
-                throw new RuntimeException("HTTP 429 - quota exceeded for " + nom);
+                throw new TransientAiException(erreur + nom);
             }
             return new ChatResponse(List.of(new Generation(new AssistantMessage("réponse de " + nom))));
         });
@@ -52,6 +57,15 @@ class SpringAiLlmClientTest {
 
         appels.clear();
         assertThat(client(modele(appels, "flash")).approfondir("s", "m")).isEqualTo("réponse de lite");
+        assertThat(appels).containsExactly("flash", "lite");
+    }
+
+    @Test
+    @DisplayName("Outils IA : modèle puissant surchargé (503 « high demand » vu en réel sur Gemini) → repli sur le modèle par défaut")
+    void repliSurSurcharge() {
+        List<String> appels = new ArrayList<>();
+        String erreur = "503 - This model is currently experiencing high demand. ";
+        assertThat(client(modele(appels, "flash", erreur)).approfondir("s", "m")).isEqualTo("réponse de lite");
         assertThat(appels).containsExactly("flash", "lite");
     }
 

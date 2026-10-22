@@ -58,6 +58,10 @@ public class AssistantIA {
                 s'exécuter tel quel à cet emplacement : imports exacts, aucun espace réservé « ... », aucune dépendance
                 en dehors du langage et du framework indiqués.
                 Si le code te semble faux, n'écris pas un test qui valide le bug : signale-le dans « Bugs probables ».
+                Compare chaque borne du code à sa documentation (docstring, commentaire, nom) : « à partir de 50 »,
+                « au moins », « at least », « minimum » veulent dire >= ; « jusqu'à » / « up to » veut dire <=. Si le code
+                ne respecte pas la documentation (ex. « à partir de 50 » mais `> 50`), c'est un bug probable : ne teste
+                pas cette valeur limite, signale-la dans « Bugs probables » avec la ligne et le correctif.
                 Structure : une phrase d'introduction, un seul bloc de code complet, puis une liste « Ce qui est testé ».
                 """),
         DOCUMENTATION("documentation", "Documentation automatique", """
