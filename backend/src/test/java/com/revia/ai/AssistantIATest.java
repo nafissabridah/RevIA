@@ -53,7 +53,7 @@ class AssistantIATest {
         ReviaProperties.Ai ai = new ReviaProperties.Ai("mock", "", "", "", 0.2, timeout, 4096, 2000, 300, 1, "", "",
                 java.util.Map.of(), 16384, timeout);
         return new AssistantIA(llm, new MasqueurDonnees(), new PreparateurCode(), executor,
-                new ReviaProperties(ai, null, null, null, null, false));
+                new ReviaProperties(ai, null, null, null, null, false), new com.revia.metier.PacksMetier());
     }
 
     @AfterEach
@@ -176,7 +176,7 @@ class AssistantIATest {
     void modeDemo() {
         ReviaProperties.Ai ai = new ReviaProperties.Ai("demo", "", "", "", 0.2, 30, 4096, 2000, 300, 1, "");
         AssistantIA demo = new AssistantIA(new AnalyseurStatique(), new MasqueurDonnees(), new PreparateurCode(), executor,
-                new ReviaProperties(ai, null, null, null, null, false));
+                new ReviaProperties(ai, null, null, null, null, false), new com.revia.metier.PacksMetier());
         AssistantIA.Reponse r = demo.outil(AssistantIA.Outil.TESTS, CODE, "java", null);
         assertThat(r.contenu()).contains("@Test", "somme_casNominal", "Mode démo");
         assertThat(demo.outil(AssistantIA.Outil.COMMIT, "+ ajout\n- retrait\n+ autre", "autre", null).contenu())
@@ -190,7 +190,7 @@ class AssistantIATest {
     void outilsQaDemo() {
         ReviaProperties.Ai ai = new ReviaProperties.Ai("demo", "", "", "", 0.2, 30, 4096, 2000, 300, 1, "");
         AssistantIA demo = new AssistantIA(new AnalyseurStatique(), new MasqueurDonnees(), new PreparateurCode(), executor,
-                new ReviaProperties(ai, null, null, null, null, false));
+                new ReviaProperties(ai, null, null, null, null, false), new com.revia.metier.PacksMetier());
 
         String plan = demo.outil(AssistantIA.Outil.CAS_DE_TEST,
                 "En tant que client, je veux me connecter.\n- Mot de passe de 8 caractères minimum\n- Compte bloqué après 5 échecs",

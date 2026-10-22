@@ -483,6 +483,22 @@ const EN: Record<string, string> = {
   'Un compte existe déjà avec cet e-mail.': 'An account already exists with this e-mail.',
   'Trop de demandes en peu de temps. Patientez quelques secondes.': 'Too many requests in a short time. Please wait a few seconds.',
   "L'analyse prend plus de temps que prévu. Réessayez dans un instant.": 'The analysis is taking longer than expected. Try again in a moment.',
+  // ----- Packs métier, outils BA et flowchart → tests (v1.5) : messages de l'API
+  "Ce fournisseur d'IA ne sait pas lire les images : collez plutôt le diagramme en Mermaid, BPMN ou draw.io.": 'This AI provider cannot read images: paste the diagram as Mermaid, BPMN or draw.io instead.',
+  'Collez un diagramme (Mermaid, BPMN ou draw.io) ou joignez une image.': 'Paste a diagram (Mermaid, BPMN or draw.io) or attach an image.',
+  'Image trop lourde (4 Mo maximum).': 'Image too large (4 MB maximum).',
+  'Image illisible (base64 invalide).': 'Unreadable image (invalid base64).',
+  "Format d'image non pris en charge : PNG, JPEG ou WebP.": 'Unsupported image format: PNG, JPEG or WebP.',
+  'XML refusé : les déclarations DOCTYPE et ENTITY ne sont pas acceptées (protection XXE).': 'XML rejected: DOCTYPE and ENTITY declarations are not accepted (XXE protection).',
+  'XML non reconnu : seuls BPMN 2.0 (<definitions>) et draw.io (<mxfile>) sont acceptés.': 'Unrecognised XML: only BPMN 2.0 (<definitions>) and draw.io (<mxfile>) are accepted.',
+  'Diagramme trop long (200000 caractères maximum).': 'Diagram too long (200,000 characters maximum).',
+  'Diagramme trop long (200 000 caractères maximum).': 'Diagram too long (200,000 characters maximum).',
+  "L'IA n'a pas su transcrire l'image en diagramme : collez plutôt le Mermaid, le BPMN ou le draw.io.": 'The AI could not transcribe the image into a diagram: paste the Mermaid, BPMN or draw.io instead.',
+  'Mode démo : cas de test calculés sans IA. Branchez un LLM pour les enrichir (données de test, résultats attendus, Gherkin).': 'Demo mode: test cases computed without AI. Connect an LLM to enrich them (test data, expected results, Gherkin).',
+  "Aucun chemin complet : corrigez d'abord les problèmes du diagramme.": 'No complete path: fix the diagram issues first.',
+  'Seuls les diagrammes Mermaid « flowchart » ou « graph » sont analysés (ligne 1).': 'Only Mermaid "flowchart" or "graph" diagrams are analysed (line 1).',
+  'BPMN sans élément <process> : exportez le diagramme en BPMN 2.0 XML.': 'BPMN without a <process> element: export the diagram as BPMN 2.0 XML.',
+  'Aucune forme reliée trouvée dans le diagramme draw.io.': 'No connected shape found in the draw.io diagram.',
   "Le service d'analyse est très sollicité. Réessayez dans une minute.": 'The analysis service is very busy. Try again in a minute.',
   "Service d'analyse indisponible. L'administrateur a été prévenu.": 'Analysis service unavailable. The administrator has been notified.',
   "Analyse incomplète : la réponse de l'IA n'a pas pu être validée. Réessayez.": 'Incomplete analysis: the AI answer could not be validated. Try again.',
@@ -523,6 +539,10 @@ const EN: Record<string, string> = {
 
 /** Messages variables (quota, délai…) : motif français → gabarit anglais. */
 const MOTIFS: [RegExp, string][] = [
+  [/^Métier inconnu : (.+)\.$/, 'Unknown industry: $1.'],
+  [/^Mermaid illisible ligne (\d+) : (.*)$/, 'Unreadable Mermaid on line $1: $2'],
+  [/^XML invalide ligne (\d+) : (.*)$/, 'Invalid XML on line $1: $2'],
+  [/^Diagramme trop grand \((\d+) (nœuds|liens) maximum\) : découpez-le en sous-processus\.$/, 'Diagram too large ($1 $2 maximum): split it into sub-processes.'],
   [/^Vous avez atteint vos (\d+) revues du jour\.$/, 'You have reached your $1 reviews for today.'],
   [/^Trop de demandes en peu de temps\. Réessayez dans (\d+) s\.$/, 'Too many requests in a short time. Try again in $1 s.'],
   [/^Les outils IA acceptent (\d+) lignes au maximum : collez une partie du code\.$/, 'AI tools accept at most $1 lines: paste part of the code.'],

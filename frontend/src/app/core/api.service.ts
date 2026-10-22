@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  Abonnement, AbonnementConfig, AssistantReponse, SuppressionCompte, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
+  Abonnement, AbonnementConfig, AnalyseFlowchart, AssistantReponse, FlowchartRequete, Metier, SuppressionCompte, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
   TableauDeBord, Utilisateur,
 } from './models';
 
@@ -11,7 +11,7 @@ import {
 export class ApiService {
   private readonly http = inject(HttpClient);
 
-  soumettre(req: { titre?: string; langage: string; code: string; mode: string }): Observable<RevueDetail> {
+  soumettre(req: { titre?: string; langage: string; code: string; mode: string; metier?: string }): Observable<RevueDetail> {
     return this.http.post<RevueDetail>('/api/revues', req);
   }
 
@@ -64,13 +64,23 @@ export class ApiService {
     return this.http.post<AssistantReponse>('/api/assistant/chat', { messages, code: code || null, langage: langage || null });
   }
 
-  outil(outil: OutilIA, req: { code: string; langage: string; cible?: string }): Observable<AssistantReponse> {
+  outil(outil: OutilIA, req: { code: string; langage: string; cible?: string; metier?: string }): Observable<AssistantReponse> {
     return this.http.post<AssistantReponse>(`/api/assistant/outils/${outil}`, req);
   }
 
   /** Vérifie, critère par critère, que le diff de la PR implémente et teste la user story. */
   criteres(req: { criteres: string; diff: string }): Observable<CouvertureCriteres> {
     return this.http.post<CouvertureCriteres>('/api/assistant/criteres', req);
+  }
+
+  /** Packs métier proposés dans le sélecteur « Métier ». */
+  metiers(): Observable<Metier[]> {
+    return this.http.get<Metier[]>('/api/metiers');
+  }
+
+  /** Flowchart → tests : chemins, défauts et cas de test calculés sans IA, puis enrichis par l'IA. */
+  flowchart(req: FlowchartRequete): Observable<AnalyseFlowchart> {
+    return this.http.post<AnalyseFlowchart>('/api/assistant/flowchart', req);
   }
 
   // ---------- intégrations (CI)

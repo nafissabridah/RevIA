@@ -218,7 +218,11 @@ public class VerificateurCriteres {
             return List.of();
         }
         List<String> lignes = section(PreparateurCode.lignes(texte));
-        List<String> trouves = scenarios(lignes);
+        // Critères déjà numérotés (« - AC-01 (US-01) : … », produits par la rédaction d'exigences) : ils priment
+        List<String> trouves = numerotes(lignes);
+        if (trouves.isEmpty()) {
+            trouves = scenarios(lignes);
+        }
         if (trouves.isEmpty()) {
             for (String l : lignes) {
                 Matcher m = PUCE.matcher(l);
@@ -256,6 +260,21 @@ public class VerificateurCriteres {
             }
         }
         return lignes;
+    }
+
+    private static final Pattern NUMEROTE = Pattern.compile(
+            "^\\s*(?:[-*+•]\\s+)?(?:\\*\\*)?AC[-_ ]?\\d+(?:\\*\\*)?\\s*(\\([^)]{1,40}\\))?\\s*[:.)\\-–—]\\s*(.+)$");
+
+    /** Lignes « AC-n : … » (référence de story entre parenthèses conservée : « (US-01) … »). */
+    private static List<String> numerotes(List<String> lignes) {
+        List<String> res = new ArrayList<>();
+        for (String l : lignes) {
+            Matcher m = NUMEROTE.matcher(l);
+            if (m.matches() && !m.group(2).isBlank()) {
+                res.add((m.group(1) == null ? "" : m.group(1) + " ") + m.group(2).trim());
+            }
+        }
+        return res;
     }
 
     /** Un scénario Gherkin = un critère (titre + étapes sur une ligne). */

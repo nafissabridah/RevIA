@@ -5,7 +5,21 @@
 > Application web (Angular + Spring Boot + PostgreSQL) où l'on colle son code et où l'IA le relit comme un développeur senior :
 > elle détecte les bugs, les mauvaises pratiques et les failles de sécurité, puis propose une **correction expliquée**.
 
-> **Nouveau (v1.3) — ce qu'aucun autre outil ne fait** :
+> **Nouveau (v1.5) — l'analyse métier (BA), pour tous les secteurs** :
+> - **Flowchart → tests** : collez un diagramme **Mermaid, BPMN 2.0 ou draw.io** (ou une image, transcrite par un modèle
+>   multimodal comme Gemini) ; RevIA calcule **sans IA** tous les chemins, les défauts (branche manquante, impasse, étape
+>   inaccessible, boucle sans sortie) et un tableau de cas de test (un par chemin + **valeurs limites** des décisions
+>   chiffrées : « montant > 1000 » → 999.99 / 1000 / 1000.01), exportable en CSV. L'IA enrichit ensuite ces cas (données,
+>   résultats attendus, Gherkin) **sans jamais inventer de chemin**. XML protégé contre XXE.
+> - **Rédaction d'exigences** (notes / réunion → règles RG-xx, user stories US-xx, critères AC-xx réutilisables par la
+>   couverture des critères) et **revue d'exigences** (note /100, INVEST + ISO/IEC/IEEE 29148, mots ambigus cités, cas
+>   manquants, version améliorée). Fonctionnent aussi sans clé d'API (mode démo à règles).
+> - **Packs métier** YAML éditables sans code ([backend/src/main/resources/metiers](backend/src/main/resources/metiers/README.md)) :
+>   générique, finance, assurance, banque et paiement, santé, e-commerce, RH, secteur public — règles, pièges classiques,
+>   rappels réglementaires (MiFID II, IFRS 9/17, Solvabilité II, DSP2/SCA, PCI-DSS, RGPD art. 9, HIPAA, RGAA…, jamais un
+>   avis juridique), questions d'analyste. Le sélecteur « Métier » les applique aux outils BA, QA, dev et à la revue de code.
+>
+> **v1.3 — ce qu'aucun autre outil ne fait** :
 > - **Tests prouvés** : sur chaque pull request, RevIA génère les tests unitaires des fichiers modifiés, **les exécute dans
 >   votre CI**, les répare à partir de la vraie sortie d'erreur, puis **injecte des bugs dans votre code (tests de mutation)**
 >   pour prouver que les tests les détectent. Seuls les tests verts sont gardés, avec un score de mutation par fichier ;
@@ -422,7 +436,10 @@ Toutes les routes `/api/**` exigent `Authorization: Bearer <jwt>`, sauf mention 
 | POST | `/api/auth/login` | S'authentifier *(public)* → `{token, expireDansSecondes, utilisateur}` |
 | GET / PUT | `/api/me` | Profil (quota du jour inclus) / modifier son nom |
 | PUT | `/api/me/mot-de-passe` | Changer de mot de passe |
-| POST | `/api/revues` | Soumettre un extrait `{titre?, langage, code, mode}` → rapport |
+| POST | `/api/revues` | Soumettre un extrait `{titre?, langage, code, mode, metier?}` → rapport |
+| GET | `/api/metiers` | Packs métier disponibles (id, noms FR/EN, description, nombre de règles / pièges / réglementations) |
+| POST | `/api/assistant/outils/{outil}` · `/flux` | Outils IA `{code, langage?, cible?, metier?}` (dont `redaction-exigences`, `revue-exigences`) |
+| POST | `/api/assistant/flowchart` | `{source, format?: auto\|mermaid\|bpmn\|drawio, metier?, enrichir?}` ou `{image: base64 ≤ 4 Mo, metier?}` → chemins, problèmes, cas de test, Mermaid, enrichissement IA |
 | GET | `/api/revues?q=&langage=&scoreMin=&scoreMax=&statut=&jours=&page=&taille=` | Historique paginé |
 | GET | `/api/revues/export.csv?...` | Exporter l'historique (CSV UTF-8, `;`) |
 | GET / DELETE | `/api/revues/{id}` | Rapport / suppression |

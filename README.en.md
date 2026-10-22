@@ -1,5 +1,9 @@
 # RevIA – AI code review and QA toolbox, with a CI quality gate
 
+**New in 1.5 — business analysis for every industry:** flowchart → test cases (Mermaid, BPMN 2.0, draw.io or an image),
+requirements writing and review, and YAML domain packs (finance, insurance, banking & payments, health, e-commerce, HR,
+public sector) applied to every AI tool.
+
 RevIA reviews code like a senior developer and helps QA engineers ship tests faster:
 OWASP-mapped vulnerabilities, hard-coded secrets, bugs and bad practices, each with a plain-language explanation and a
 ready-to-apply fix — plus 13 AI tools for developers and testers. Runs on **free LLMs** with automatic failover,
@@ -16,6 +20,22 @@ assertion. Your code runs on your runner, never on the RevIA server.
 **2. Acceptance-criteria coverage — does the PR do what the user story asks?** RevIA reads the "Acceptance criteria"
 of the PR description (bullets or Gherkin) and checks each one against the diff: ✅ implemented *and* tested, 🟡 partial,
 ❌ missing, with `file:line` evidence and the test to add. Optional gate: `REVIA_MIN_AC_COVERAGE`.
+
+**3. Flowchart → tests, deterministic first.** Paste a Mermaid, BPMN 2.0 or draw.io diagram (or upload a picture,
+transcribed into Mermaid by a multimodal model such as Gemini). RevIA computes **without AI** every path from start to
+end (loops bounded), the structural defects (decision with a missing branch, dead end, unreachable step, loop without
+exit) and a test-case table: one case per path plus **boundary values** for numeric decisions ("amount > 1000" →
+999.99 / 1000 / 1000.01, exact decimals), exportable to CSV. Only then does the AI enrich those cases (test data,
+expected results, domain rules, Gherkin) — it never invents a path. XML input is XXE-safe.
+
+**4. The business analyst's steps too.** *Requirements writing* turns raw notes or a meeting transcript into business
+rules (RG-01…), user stories (US-01…) and acceptance criteria (AC-01…) that the coverage check above reads as is.
+*Requirements review* scores a story /100 (INVEST + ISO/IEC/IEEE 29148), quotes every vague word, lists missing cases
+(errors, limits, roles, empty states, concurrency) and returns an improved, testable version. Both work without an API
+key (rule-based demo mode). **Domain packs** — plain YAML files a non-developer can edit — add each industry's rules,
+classic pitfalls (money in floats, rounding, value dates, idempotent payments, claim lifecycle, premium proration,
+health-data consent, VAT per country…) and regulation reminders (MiFID II, IFRS 9/17, Solvency II, PSD2/SCA, PCI-DSS,
+GDPR art. 9, HIPAA, WCAG/RGAA — reminders, not legal advice) to the BA, QA and dev tools and to the code review.
 
 Why it matters: in 2026 almost every team uses AI for testing, but only 18 % trust their coverage
 ([Alt.QA, via quashbugs](https://quashbugs.com/blog/ai-statistics)) — the top ask of testers is AI tests that are
@@ -89,7 +109,7 @@ per visitor. Production refuses the example secrets of `.env.example`.
 
 ## Quality
 
-Backend 64 tests (JUnit 5, Mockito, MockMvc) · frontend 25 tests (Karma/Jasmine) · AI test set: 20/20 known defects
+Backend 118 tests (JUnit 5, Mockito, MockMvc) · frontend 42 tests (Karma/Jasmine) · AI test set: 20/20 known defects
 found and 0/3 false positives in demo mode, 19/20 with Gemini ([report](docs/rapport-jeu-essai-gemini.md)).
 
 See [CHANGELOG.md](CHANGELOG.md) and [docs/AUDIT-commercial.md](docs/AUDIT-commercial.md) (buying blockers and what

@@ -1,5 +1,8 @@
 package com.revia.ai;
 
+import com.revia.error.ApiException;
+import com.revia.error.ErrorCode;
+
 import reactor.core.publisher.Flux;
 
 /**
@@ -41,5 +44,18 @@ public interface LlmClient {
     /** Même chose que {@link #approfondir}, diffusé morceau par morceau. */
     default Flux<String> approfondirEnFlux(String promptSysteme, String messageUtilisateur) {
         return redigerEnFlux(promptSysteme, messageUtilisateur);
+    }
+
+    /** Vrai si le modèle lit les images (multimodal) : Gemini, OpenAI, Claude. */
+    default boolean litImages() {
+        return false;
+    }
+
+    /**
+     * Envoie une image (PNG, JPEG, WebP) avec une consigne et renvoie le texte produit (ex. transcription d'un
+     * diagramme en Mermaid). Par défaut, et en mode démo : erreur claire, l'utilisateur colle alors le texte du diagramme.
+     */
+    default String lireImage(String promptSysteme, String consigne, byte[] image, String typeMime) {
+        throw new ApiException(ErrorCode.LLM_IMAGE_NON_SUPPORTEE);
     }
 }

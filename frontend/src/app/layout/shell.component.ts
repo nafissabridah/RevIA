@@ -27,9 +27,13 @@ import { IconeComponent } from '../shared/icone.component';
             <a routerLink="/historique" routerLinkActive="actif"><app-icone nom="historique" />{{ l.t('Historique', 'History') }}
               <span class="compteur">{{ auth.utilisateur()?.nbRevues ?? 0 }}</span></a>
             <a routerLink="/tableau-de-bord" routerLinkActive="actif"><app-icone nom="tableau" />{{ l.t('Tableau de bord', 'Dashboard') }}</a>
+            <div class="section">{{ l.t('Analyse métier (BA)', 'Business analysis (BA)') }}</div>
+            <a routerLink="/outils" [queryParams]="{ outil: 'redaction-exigences' }" routerLinkActive="actif" [routerLinkActiveOptions]="{ exact: true }"><app-icone nom="crayon" />{{ l.t('Rédaction d’exigences', 'Requirements writing') }}</a>
+            <a routerLink="/outils" [queryParams]="{ outil: 'revue-exigences' }" routerLinkActive="actif" [routerLinkActiveOptions]="{ exact: true }"><app-icone nom="recherche" />{{ l.t('Revue d’exigences', 'Requirements review') }}</a>
+            <a routerLink="/flowchart" routerLinkActive="actif"><app-icone nom="flux" />{{ l.t('Flowchart → tests', 'Flowchart → tests') }}<span class="nouveau">{{ l.t('Nouveau', 'New') }}</span></a>
             <div class="section">{{ l.t('IA pour dev & QA', 'AI for dev & QA') }}</div>
             <a routerLink="/assistant" routerLinkActive="actif"><app-icone nom="chat" />{{ l.t('Assistant IA', 'AI assistant') }}@if (fournisseur()) {<span class="nouveau">{{ fournisseur() }}</span>}</a>
-            <a routerLink="/outils" routerLinkActive="actif"><app-icone nom="outils" />{{ l.t('Outils dev & QA', 'Dev & QA tools') }}</a>
+            <a routerLink="/outils" routerLinkActive="actif" [routerLinkActiveOptions]="{ exact: true }"><app-icone nom="outils" />{{ l.t('Outils dev & QA', 'Dev & QA tools') }}</a>
             <a routerLink="/criteres" routerLinkActive="actif"><app-icone nom="criteres" />{{ l.t('Couverture des critères', 'Acceptance coverage') }}</a>
             <div class="section">{{ l.t('Compte', 'Account') }}</div>
             <a routerLink="/parametres" routerLinkActive="actif"><app-icone nom="parametres" />{{ l.t('Paramètres', 'Settings') }}</a>
@@ -86,6 +90,7 @@ import { IconeComponent } from '../shared/icone.component';
     }
     .nom { color: #fff; font-weight: 800; font-size: 18px; }
     .ia { color: var(--accent-ia); }
+    nav { overflow-y: auto; min-height: 0; }
     .section { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #6c7298; margin: 14px 10px 8px; }
     nav a {
       display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; color: var(--sidebar-texte);

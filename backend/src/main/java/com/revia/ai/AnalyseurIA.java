@@ -75,6 +75,10 @@ public class AnalyseurIA {
         this.config = props.ai();
     }
 
+    /** Revue avec un pack métier : le code qui enfreint une règle du domaine est un bug, même s'il « marche ». */
+    static final String CONSIGNE_METIER = "\n\nSignale aussi (catégorie « bug ») le code qui enfreint une règle ou tombe dans "
+            + "un piège du domaine métier ci-dessous, en citant son identifiant (ex. FIN-01) dans l'explication.";
+
     public String getFournisseur() {
         return llm.fournisseur();
     }
@@ -102,6 +106,14 @@ public class AnalyseurIA {
     }
 
     public Resultat analyser(String code, String langage, String mode) {
+        return analyser(code, langage, mode, "");
+    }
+
+    /**
+     * Revue avec un contexte métier facultatif (règles du pack choisi, voir {@code PacksMetier#contexte}) ajouté au
+     * prompt système : les violations de règles métier remontent comme des bugs.
+     */
+    public Resultat analyser(String code, String langage, String mode, String contexteMetier) {
         if (!llm.disponible()) {
             log.error("Analyse refusée : clé d'API absente pour le fournisseur {}", llm.fournisseur());
             throw new ApiException(ErrorCode.LLM_CLE_ABSENTE);
@@ -113,7 +125,9 @@ public class AnalyseurIA {
         int nbLignes = PreparateurCode.lignes(code).size();
         List<PreparateurCode.Morceau> morceaux = preparateur.decouper(masque.code(), config.chunkLines());
         PromptSysteme prompt = prompts.actif();
-        String systeme = prompt.construire(langage, consigneMode(mode)) + Langue.consigne();
+        String systeme = prompt.construire(langage, consigneMode(mode))
+                + (contexteMetier == null || contexteMetier.isBlank() ? "" : CONSIGNE_METIER + contexteMetier)
+                + Langue.consigne();
 
         List<ProblemeValide> tous = new ArrayList<>();
         List<String> resumes = new ArrayList<>();

@@ -78,6 +78,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/criteres/criteres.component').then((m) => m.CriteresComponent),
       },
       {
+        path: 'flowchart',
+        canActivate: [developpeurGuard],
+        title: 'Flowchart → tests · RevIA',
+        loadComponent: () => import('./pages/flowchart/flowchart.component').then((m) => m.FlowchartComponent),
+      },
+      {
         path: 'parametres',
         title: 'Paramètres · RevIA',
         loadComponent: () => import('./pages/parametres/parametres.component').then((m) => m.ParametresComponent),

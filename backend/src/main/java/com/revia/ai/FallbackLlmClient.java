@@ -82,6 +82,35 @@ public class FallbackLlmClient implements LlmClient {
         return flux(0, promptSysteme, messageUtilisateur, true);
     }
 
+    @Override
+    public boolean litImages() {
+        return chaine.stream().anyMatch(c -> c.disponible() && c.litImages());
+    }
+
+    /** Images : seuls les fournisseurs multimodaux de la chaîne sont essayés, dans l'ordre. */
+    @Override
+    public String lireImage(String promptSysteme, String consigne, byte[] image, String typeMime) {
+        RuntimeException derniere = null;
+        for (LlmClient c : chaine) {
+            if (!c.disponible() || !c.litImages()) {
+                continue;
+            }
+            try {
+                String r = c.lireImage(promptSysteme, consigne, image, typeMime);
+                dernier.set(c);
+                return r;
+            } catch (RuntimeException e) {
+                ApiException a = AnalyseurIA.traduire(e);
+                if (!RELAIS.contains(a.getCode()) || Thread.currentThread().isInterrupted()) {
+                    throw a;
+                }
+                log.warn("Fournisseur {} indisponible pour l'image ({}) : relais au suivant.", c.fournisseur(), a.getCode());
+                derniere = a;
+            }
+        }
+        throw derniere != null ? derniere : new ApiException(ErrorCode.LLM_IMAGE_NON_SUPPORTEE);
+    }
+
     private String essayer(Function<LlmClient, String> appel) {
         RuntimeException derniere = null;
         for (LlmClient c : chaine) {

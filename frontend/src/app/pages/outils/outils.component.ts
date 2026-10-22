@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { FluxIaService } from '../../core/flux-ia.service';
 import { LangueService } from '../../core/langue.service';
@@ -10,6 +11,7 @@ import { TransfertCodeService } from '../../core/transfert-code.service';
 import { CodeEditorComponent } from '../../shared/code-editor.component';
 import { IconeComponent } from '../../shared/icone.component';
 import { ReponseIaComponent } from '../../shared/reponse-ia.component';
+import { SelecteurMetierComponent } from '../../shared/selecteur-metier.component';
 
 interface Textes {
   titre: string;
@@ -21,7 +23,7 @@ interface Textes {
 interface Outil {
   id: OutilIA;
   icone: string;
-  groupe: 'dev' | 'qa';
+  groupe: 'ba' | 'dev' | 'qa';
   fr: Textes;
   en: Textes;
   /** Cadres / formats proposés (le premier est la valeur par défaut, envoyée comme « langage cible »). */
@@ -31,6 +33,14 @@ interface Outil {
 }
 
 export const OUTILS: Outil[] = [
+  // ----- Analyse métier (BA) -----
+  { id: 'redaction-exigences', icone: '🗒️', groupe: 'ba', texteLibre: true,
+    fr: { titre: 'Rédaction d’exigences', description: 'Notes ou réunion → règles RG, user stories, critères AC.', bouton: 'Rédiger les exigences', placeholder: 'Collez vos notes, un e-mail ou le compte rendu de la réunion' },
+    en: { titre: 'Requirements writing', description: 'Notes or meeting → rules, user stories, acceptance criteria.', bouton: 'Write the requirements', placeholder: 'Paste your notes, an e-mail or the meeting minutes' } },
+  { id: 'revue-exigences', icone: '🔍', groupe: 'ba', texteLibre: true,
+    fr: { titre: 'Revue d’exigences', description: 'Note /100, INVEST, mots ambigus, cas manquants, version améliorée.', bouton: 'Relire l’exigence', placeholder: 'Collez la user story et ses critères d’acceptation' },
+    en: { titre: 'Requirements review', description: 'Score /100, INVEST, vague words, missing cases, improved version.', bouton: 'Review the requirement', placeholder: 'Paste the user story and its acceptance criteria' } },
+  // ----- Développement -----
   { id: 'tests', icone: '🧪', groupe: 'dev',
     fr: { titre: 'Tests unitaires', description: 'JUnit, pytest ou Jest prêts à copier.', bouton: 'Générer les tests', placeholder: 'Collez la fonction ou la classe à tester' },
     en: { titre: 'Unit tests', description: 'Copy-ready JUnit, pytest or Jest tests.', bouton: 'Generate tests', placeholder: 'Paste the function or class to test' } },
@@ -75,6 +85,8 @@ export const OUTILS: Outil[] = [
 ];
 
 const EXEMPLES: Record<OutilIA, { code: string; langage: string }> = {
+  'redaction-exigences': { langage: 'auto', code: 'Réunion du 14/10 – service sinistres auto\n- Le client déclare son sinistre en ligne (photos, constat), 24h/24.\n- Les petits dossiers doivent être réglés rapidement, sans expert.\n- Au-delà de 1 500 € une expertise est obligatoire.\n- La franchise du contrat est déduite du remboursement.\n- Le gestionnaire peut refuser si le contrat était résilié à la date du sinistre.\n- Paul (DSI) : virement sous 48 h après accord, notification par SMS et e-mail.\n- Question de Marie : que fait-on des sinistres déclarés deux fois ?' },
+  'revue-exigences': { langage: 'auto', code: 'En tant qu’assuré, je veux déclarer un sinistre en ligne afin d’être indemnisé plus vite.\n\nCritères d’acceptation :\n- Le formulaire est simple et rapide à remplir\n- Les photos sont acceptées si nécessaire (jpg, png, etc.)\n- Le dossier est créé et le client est notifié\n- Le remboursement est calculé automatiquement' },
   tests: { langage: 'java', code: 'public class Panier {\n    public double total(double prix, int quantite) {\n        if (quantite < 0) {\n            throw new IllegalArgumentException("Quantité négative");\n        }\n        return prix * quantite;\n    }\n}' },
   documentation: { langage: 'python', code: 'def moyenne(notes):\n    if not notes:\n        return 0\n    return sum(notes) / len(notes)\n' },
   explication: { langage: 'javascript', code: 'const actifs = users\n  .filter(u => u.actif)\n  .map(u => u.email.toLowerCase())\n  .sort();\n' },
@@ -90,11 +102,14 @@ const EXEMPLES: Record<OutilIA, { code: string; langage: string }> = {
   'revue-tests': { langage: 'javascript', code: "describe('cart', () => {\n  it('works', async () => {\n    const cart = new Cart();\n    cart.add({ id: 1, price: 10 }, 2);\n    await new Promise(r => setTimeout(r, 1000));\n    expect(cart.total()).toBeTruthy();\n  });\n\n  it('remove', () => {\n    cart.remove(1);\n  });\n});" },
 };
 
-/** Boîte à outils IA : tout ce qui accélère le travail du développeur et du testeur (QA), au-delà de la revue. */
+/**
+ * Boîte à outils IA : tout ce qui accélère le travail de l'analyste (BA), du développeur et du testeur (QA),
+ * au-delà de la revue. Le sélecteur « Métier » ajoute les règles d'un secteur (finance, assurance…) au prompt.
+ */
 @Component({
   selector: 'app-outils',
   standalone: true,
-  imports: [FormsModule, RouterLink, CodeEditorComponent, IconeComponent, ReponseIaComponent],
+  imports: [FormsModule, RouterLink, CodeEditorComponent, IconeComponent, ReponseIaComponent, SelecteurMetierComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="barre">
@@ -114,6 +129,7 @@ const EXEMPLES: Record<OutilIA, { code: string; langage: string }> = {
           @for (c of cadres; track c) { <option [value]="c">{{ c }}</option> }
         </select>
       }
+      <app-selecteur-metier [metier]="metier()" (metierChange)="metier.set($event)" />
       <button class="btn" type="button" (click)="exemple()"><app-icone nom="ampoule" />{{ l.t('Exemple', 'Sample') }}</button>
       <button class="btn primaire" type="button" (click)="generer()" [disabled]="attente() || !code().trim()">
         @if (attente()) { <span class="spinner"></span> {{ l.t('Génération…', 'Generating…') }} } @else { <app-icone nom="etoile" />{{ textes().bouton }} }
@@ -212,16 +228,21 @@ export class OutilsComponent implements OnInit {
   private readonly flux = inject(FluxIaService);
   private readonly transfert = inject(TransfertCodeService);
   private readonly api = inject(ApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly detruit = inject(DestroyRef);
   readonly l = inject(LangueService);
 
   readonly outils = OUTILS;
   readonly groupes = [
+    { id: 'ba', fr: 'Analyse métier (BA)', en: 'Business analysis (BA)', outils: OUTILS.filter((o) => o.groupe === 'ba') },
     { id: 'dev', fr: 'Développement', en: 'Development', outils: OUTILS.filter((o) => o.groupe === 'dev') },
     { id: 'qa', fr: 'QA & tests', en: 'QA & testing', outils: OUTILS.filter((o) => o.groupe === 'qa') },
   ];
   readonly langages = LANGAGES;
   readonly cibles = LANGAGES.filter((l) => l.valeur !== 'auto');
-  readonly outil = signal<Outil>(OUTILS[0]);
+  readonly outil = signal<Outil>(OUTILS.find((o) => o.id === 'tests')!);
+  /** Pack métier choisi (finance, assurance…) : ses règles sont ajoutées au prompt côté serveur. */
+  readonly metier = signal('');
   readonly textes = computed(() => this.l.t(this.outil().fr, this.outil().en));
   readonly code = signal('');
   readonly langage = signal('auto');
@@ -236,6 +257,13 @@ export class OutilsComponent implements OnInit {
   readonly nbLignes = computed(() => (this.code() ? this.code().split('\n').length : 0));
 
   ngOnInit(): void {
+    // Lien direct depuis la barre latérale : /outils?outil=redaction-exigences
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.detruit)).subscribe((q) => {
+      const o = OUTILS.find((x) => x.id === q.get('outil'));
+      if (o) {
+        this.choisir(o);
+      }
+    });
     const recu = this.transfert.prendre();
     if (recu) {
       this.code.set(recu.code);
@@ -283,7 +311,7 @@ export class OutilsComponent implements OnInit {
     this.reponse.set(null);
     this.texte.set('');
     const langage = this.outil().texteLibre ? 'auto' : this.langage();
-    this.flux.outil(this.outil().id, { code: this.code(), langage, cible: this.cibleEnvoyee() }).subscribe((ev) => {
+    this.flux.outil(this.outil().id, { code: this.code(), langage, cible: this.cibleEnvoyee(), metier: this.metier() || undefined }).subscribe((ev) => {
       if (ev.type === 'morceau') {
         this.texte.update((t) => t + ev.texte);
       } else if (ev.type === 'fin') {

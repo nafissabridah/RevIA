@@ -28,6 +28,7 @@ import com.revia.domain.Revue;
 import com.revia.domain.Utilisateur;
 import com.revia.error.ApiException;
 import com.revia.error.ErrorCode;
+import com.revia.metier.PacksMetier;
 import com.revia.repository.ProblemeRepository;
 import com.revia.repository.RevueRepository;
 import com.revia.repository.UtilisateurRepository;
@@ -47,10 +48,12 @@ public class RevueService {
     private final QuotaService quotas;
     private final TransactionTemplate tx;
     private final ReviaProperties props;
+    private final PacksMetier packs;
 
     public RevueService(RevueRepository revues, ProblemeRepository problemes, UtilisateurRepository utilisateurs,
                         AnalyseurIA analyseur, PreparateurCode preparateur, QuotaService quotas, TransactionTemplate tx,
-                        ReviaProperties props) {
+                        ReviaProperties props, PacksMetier packs) {
+        this.packs = packs;
         this.revues = revues;
         this.problemes = problemes;
         this.utilisateurs = utilisateurs;
@@ -84,7 +87,7 @@ public class RevueService {
         String mode = req.mode() == null || req.mode().isBlank() ? "complet" : req.mode();
         String titre = req.titre() == null || req.titre().isBlank() ? titreParDefaut(code, langage) : req.titre().trim();
 
-        AnalyseurIA.Resultat res = analyseur.analyser(code, langage, mode);
+        AnalyseurIA.Resultat res = analyseur.analyser(code, langage, mode, packs.contexte(req.metier()));
 
         Long id = tx.execute(status -> {
             Developpeur d = developpeur(userId);

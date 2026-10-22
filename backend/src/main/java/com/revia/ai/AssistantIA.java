@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import com.revia.config.ReviaProperties;
 import com.revia.error.ApiException;
 import com.revia.error.ErrorCode;
+import com.revia.metier.PacksMetier;
 
 import reactor.core.publisher.Flux;
 
@@ -34,12 +35,14 @@ public class AssistantIA {
     public static final int MAX_MESSAGES = 20;
 
     static final String CONSIGNES_COMMUNES = """
-            Tu es RevIA, un assistant de développement logiciel et d'assurance qualité (QA) pour les développeurs et les testeurs.
+            Tu es RevIA, un assistant de développement logiciel, d'analyse métier (BA) et d'assurance qualité (QA)
+            pour les analystes, les développeurs et les testeurs.
             Rédige en français correct, en Markdown (le code et ses identifiants restent dans leur langue).
             Mets tout code dans un bloc ``` suivi du nom du langage.
             Les valeurs ***MASQUÉ*** sont des secrets masqués volontairement avant l'envoi : ne les devine jamais,
             garde ***MASQUÉ*** ou remplace-les par une variable d'environnement.
-            Si la demande n'a aucun rapport avec la programmation, réponds poliment que tu ne traites que le développement logiciel.
+            Si la demande n'a aucun rapport avec un projet logiciel (exigences, code, tests), réponds poliment que tu ne traites
+            que l'analyse, le développement et le test de logiciels.
             """;
 
     /** Les outils de la boîte à outils IA, avec leur consigne propre. */
@@ -177,6 +180,53 @@ public class AssistantIA {
                   ou son intention évidente), retire ce test et décris le bug dans « Bugs probables détectés »
                   (ligne, entrée, résultat attendu, résultat obtenu) : ne masque jamais un bug en changeant l'assertion ;
                 - pour chaque mutant survivant, ajoute une assertion précise qui le détecterait.
+                """),
+        // ----- Analyse métier (BA) : de la note brute à l'exigence testable, puis sa revue -----
+        REDACTION_EXIGENCES("redaction-exigences", "Rédaction d'exigences (BA)", "Notes, e-mail ou compte rendu", """
+                Outil : rédaction d'exigences.
+                Le texte fourni est brut : notes, e-mail, compte rendu ou transcription de réunion.
+                Rédige, comme un analyste métier (BA) senior, un dossier d'exigences prêt à relire, avec EXACTEMENT
+                ces titres Markdown, dans cet ordre :
+                ## Contexte et objectif — 2 à 4 phrases ;
+                ## Règles de gestion — des lignes « - RG-01 : … », une règle vérifiable par ligne (qui, quoi, quand,
+                   quelle valeur ou quel seuil) ;
+                ## User stories — pour chacune « ### US-01 : <titre court> », puis « En tant que <rôle>, je veux <action>
+                   afin de <bénéfice>. » et les règles concernées (RG-xx) ;
+                ## Critères d'acceptation — UNIQUEMENT des lignes « - AC-01 (US-01) : … », numérotées en continu sur tout
+                   le document (AC-01, AC-02, AC-03… sans repartir à 01 pour chaque story), sans sous-titre entre elles ;
+                   chaque critère est testable (valeurs, messages, états) et, quand c'est utile, écrit sur une seule ligne
+                   « Étant donné …, quand …, alors … » ; couvre le cas nominal, les erreurs, les limites et les droits ;
+                ## Scénarios Gherkin — les principaux critères dans un bloc ```gherkin (Feature, puis un Scenario par
+                   critère important, dont le titre commence par son AC-xx) ;
+                ## Questions ouvertes — ce que le texte ne dit pas (chiffres, rôles, erreurs, volumes, délais),
+                   des lignes « - Q-01 : … » ;
+                ## Hors périmètre — ce qui n'est explicitement pas couvert, ou « À confirmer ».
+                Les identifiants RG-xx, US-xx et AC-xx sont stables : ne les renumérote pas et réutilise-les pour la
+                traçabilité (la section des critères est relue telle quelle par la couverture des critères de RevIA).
+                N'invente aucun fait : une valeur absente du texte devient une question ouverte ou « à confirmer ».
+                """),
+        REVUE_EXIGENCES("revue-exigences", "Revue d'exigences (BA)", "User story, exigence et critères", """
+                Outil : revue d'exigences.
+                Le texte fourni est une user story, une exigence ou une liste de critères d'acceptation écrite par un
+                analyste métier. Relis-le comme un BA senior et un testeur exigeants, avec ces titres :
+                ## Note de qualité — « Note : NN/100 » sur la première ligne, puis le verdict en une phrase ;
+                ## Grille — tableau Markdown Critère | Statut (✅ / ⚠️ / ❌) | Constat : les 6 critères INVEST de la story
+                   (Indépendante, Négociable, Valeur, Estimable, Petite, Testable), puis les qualités ISO/IEC/IEEE 29148
+                   (non ambiguë, complète, cohérente, vérifiable, faisable, traçable) ;
+                ## Mots ambigus — chaque terme vague CITÉ entre guillemets tel qu'il apparaît dans le texte (« rapidement »,
+                   « si nécessaire », « etc. », « user-friendly »…), avec la question qui le rend mesurable ;
+                ## Cas manquants — erreurs et saisies invalides, limites et volumes, rôles et droits, états vides,
+                   concurrence et double soumission, reprise après panne, accessibilité ;
+                ## Contradictions — entre règles, entre critères ou avec le domaine (ou « Aucune détectée ») ;
+                ## Critères non testables réécrits — tableau Avant | Après (testable, avec valeurs) ;
+                ## Écarts avec les règles du domaine — si un DOMAINE MÉTIER est fourni plus bas, chaque règle ou piège du
+                   domaine que l'exigence ignore (cite son identifiant) ; sinon les règles transverses (dates, montants,
+                   fuseaux horaires, données personnelles) ;
+                ## Questions aux parties prenantes — numérotées, de la plus bloquante à la moins bloquante ;
+                ## Version améliorée — la story réécrite (« En tant que …, je veux … afin de … »), puis ses critères en
+                   lignes « - AC-01 : … » numérotées en continu, testables et réutilisables telles quelles.
+                Ne note pas que la forme : une story bien écrite mais muette sur les erreurs ou les limites ne dépasse
+                pas 70/100. Cite le texte plutôt que de le paraphraser.
                 """);
 
         private final String id;
@@ -200,9 +250,14 @@ public class AssistantIA {
             return entree;
         }
 
-        /** Outil QA : l'entrée n'est pas forcément du code. */
+        /** Outil QA ou BA : l'entrée n'est pas forcément du code. */
         public boolean qa() {
             return ordinal() >= CAS_DE_TEST.ordinal();
+        }
+
+        /** Outil d'analyse métier (BA) : l'entrée est du texte, jamais du code. */
+        public boolean ba() {
+            return this == REDACTION_EXIGENCES || this == REVUE_EXIGENCES;
         }
 
         public String id() {
@@ -239,9 +294,11 @@ public class AssistantIA {
     private final PreparateurCode preparateur;
     private final ExecutorService executor;
     private final ReviaProperties.Ai config;
+    private final PacksMetier packs;
 
     public AssistantIA(LlmClient llm, MasqueurDonnees masqueur, PreparateurCode preparateur,
-                       @Qualifier("analyseExecutor") ExecutorService executor, ReviaProperties props) {
+                       @Qualifier("analyseExecutor") ExecutorService executor, ReviaProperties props, PacksMetier packs) {
+        this.packs = packs;
         this.llm = llm;
         this.masqueur = masqueur;
         this.preparateur = preparateur;
@@ -300,13 +357,22 @@ public class AssistantIA {
     }
 
     public Demande preparerOutil(Outil outil, String code, String langage, String cible) {
+        return preparerOutil(outil, code, langage, cible, null);
+    }
+
+    /**
+     * Prépare l'appel d'un outil. {@code metier} (facultatif, ex. « assurance ») : les règles, pièges et
+     * réglementations du pack métier sont ajoutés au prompt système, avec une taille bornée.
+     */
+    public Demande preparerOutil(Outil outil, String code, String langage, String cible, String metier) {
         verifierDisponible();
+        String contexteMetier = packs.contexte(metier);
         verifierTaille(code);
         if (outil == Outil.CONVERSION && (cible == null || cible.isBlank())) {
             throw new ApiException(ErrorCode.VALIDATION, "Choisissez le langage cible de la conversion.");
         }
         long debut = System.currentTimeMillis();
-        String lang = preparateur.detecterLangage(langage, null, code);
+        String lang = outil.ba() ? "autre" : preparateur.detecterLangage(langage, null, code);
         MasqueurDonnees.Resultat masque = masqueur.masquer(code);
         String extrait = outil == Outil.EXPLICATION
                 ? PreparateurCode.numeroter(PreparateurCode.lignes(masque.code()), 1)
@@ -321,7 +387,8 @@ public class AssistantIA {
         // Réparation de tests : l'entrée contient déjà ses blocs (code testé, tests, sortie) : pas de bloc englobant
         message.append(entree).append(" :\n").append(outil == Outil.REPARER_TESTS ? extrait.stripTrailing() + "\n" : bloc(lang, extrait));
         log.info("Outil IA {} : {} ligne(s), {} masquage(s)", outil.id, PreparateurCode.lignes(code).size(), masque.nbMasquages());
-        return new Demande(CONSIGNES_COMMUNES + "\n" + outil.consigne + Langue.consigneTexte(), message.toString(), lang,
+        return new Demande(CONSIGNES_COMMUNES + "\n" + outil.consigne + contexteMetier + Langue.consigneTexte(),
+                message.toString(), lang,
                 masque.nbMasquages(), debut, true);
     }
 

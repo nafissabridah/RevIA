@@ -23,6 +23,8 @@ public enum ErrorCode {
     LLM_CLE_ABSENTE(HttpStatus.SERVICE_UNAVAILABLE, "Service d'analyse indisponible. L'administrateur a été prévenu."),
     LLM_REPONSE_INVALIDE(HttpStatus.BAD_GATEWAY, "Analyse incomplète : la réponse de l'IA n'a pas pu être validée. Réessayez."),
     LLM_INDISPONIBLE(HttpStatus.SERVICE_UNAVAILABLE, "Service d'analyse momentanément indisponible. Réessayez dans un instant."),
+    LLM_IMAGE_NON_SUPPORTEE(HttpStatus.UNPROCESSABLE_ENTITY,
+            "Ce fournisseur d'IA ne sait pas lire les images : collez plutôt le diagramme en Mermaid, BPMN ou draw.io."),
     WEBHOOK_SIGNATURE(HttpStatus.UNAUTHORIZED, "Signature de webhook invalide."),
     PAIEMENT_INDISPONIBLE(HttpStatus.SERVICE_UNAVAILABLE, "Le service de paiement est momentanément indisponible. Réessayez plus tard."),
     INTERNE(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur inattendue s'est produite. Réessayez plus tard.");

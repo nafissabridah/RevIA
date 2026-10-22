@@ -65,7 +65,12 @@ public final class Dtos {
             @Size(max = 20) String langage,
             @NotBlank(message = "Collez entre 1 et 2 000 lignes de code.")
             @Size(max = 200_000, message = "Collez entre 1 et 2 000 lignes de code.") String code,
-            @Pattern(regexp = "complet|securite|qualite", message = "Mode inconnu.") String mode) {
+            @Pattern(regexp = "complet|securite|qualite", message = "Mode inconnu.") String mode,
+            @Size(max = 40, message = "Métier inconnu.") String metier) {
+
+        public RevueRequest(String titre, String langage, String code, String mode) {
+            this(titre, langage, code, mode, null);
+        }
     }
 
     public record RevueResume(Long id, String titre, String langage, LocalDateTime creeLe, int score,
@@ -112,7 +117,24 @@ public final class Dtos {
             @NotBlank(message = "Collez votre code.") @Size(max = 200_000, message = "Code trop long.") String code,
             @Size(max = 20) String langage,
             // Langage cible, outil (Playwright…) ou contexte d'exécution des tests (chemins, commande)
-            @Size(max = 500, message = "Cible trop longue (500 caractères maximum).") String cible) {
+            @Size(max = 500, message = "Cible trop longue (500 caractères maximum).") String cible,
+            // Pack métier facultatif (finance, assurance…) : ses règles sont ajoutées au prompt
+            @Size(max = 40, message = "Métier inconnu.") String metier) {
+    }
+
+    /** Flowchart → tests : diagramme texte (Mermaid, BPMN, draw.io) ou image (base64, 4 Mo au maximum). */
+    public record FlowchartRequest(
+            @Size(max = 200_000, message = "Diagramme trop long (200 000 caractères maximum).") String source,
+            @Pattern(regexp = "auto|mermaid|bpmn|drawio", message = "Format inconnu (auto, mermaid, bpmn, drawio).") String format,
+            @Size(max = 6_000_000, message = "Image trop lourde (4 Mo maximum).") String image,
+            @Size(max = 40, message = "Métier inconnu.") String metier,
+            // Faux : analyse déterministe seule, sans appel au LLM
+            Boolean enrichir) {
+    }
+
+    /** Pack métier proposé dans l'interface (le contenu complet reste côté serveur). */
+    public record MetierDto(String id, String nomFr, String nomEn, String description, String descriptionEn, int nbRegles,
+                            int nbPieges, int nbReglementations, int nbQuestions, int nbTermes) {
     }
 
     public record AssistantReponse(String contenu, String outil, String langage, int nbMasquages, long dureeMs,

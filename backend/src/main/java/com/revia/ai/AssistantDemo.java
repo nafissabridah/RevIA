@@ -61,6 +61,11 @@ final class AssistantDemo {
             case "réparation de tests" -> "### Réparation de tests\nLa réparation à partir de la sortie d'exécution "
                     + "nécessite un vrai LLM : le fichier de tests est renvoyé tel quel.\n\n```" + langage + "\n"
                     + blocDesTests(message) + "\n```";
+            case "rédaction d'exigences" -> DemoBa.redaction(code, systeme);
+            case "revue d'exigences" -> DemoBa.revue(code, systeme);
+            case "enrichissement des cas de test d'un flowchart" -> "### Enrichissement\nLes cas de test ci-dessus ont été "
+                    + "calculés sans IA à partir du diagramme ; l'enrichissement (données de test, résultats attendus, Gherkin) "
+                    + "nécessite un vrai LLM.";
             default -> "Bonjour ! Je suis l'assistant RevIA. Je peux expliquer une erreur, proposer une correction "
                     + "ou générer des tests. Posez votre question et joignez votre code si besoin.";
         };

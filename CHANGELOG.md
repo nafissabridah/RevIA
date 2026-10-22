@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.5.0 – 2026-10-22
+### Added: business analysis (BA) for every industry
+- **Flowchart → tests** (`POST /api/assistant/flowchart`, page "Flowchart → tests"): Mermaid `flowchart`/`graph`
+  (all node shapes, `-->` `---` `-.->` `==>` `--x` `<-->`, `-->|label|` and `-- label -->`, chained and `&` edges,
+  subgraphs as containers), **BPMN 2.0** (events, tasks, exclusive / inclusive / parallel gateways, `name` or
+  `conditionExpression`, default flows, boundary events) and **draw.io** (HTML labels, separate edge labels,
+  `<object>` wrappers, compressed `<diagram>` = base64 + raw deflate + URL encoding, size-capped) are parsed
+  **without AI**. XML is XXE-safe (DOCTYPE / ENTITY rejected, secure parser settings). The analysis lists every path
+  start → end (each edge at most twice per path, 200 paths max with truncation flag), decisions with a single branch,
+  dead ends, unreachable nodes, loops without exit, unlabelled branches and parallel gateways, then builds a test-case
+  table: one case per complete path (TC-01…) plus boundary values of numeric decisions computed in exact decimals
+  (`montant > 1000` → 999.99 / 1000 / 1000.01, "entre 1 et 30", "au moins 18"…), CSV export. When an LLM is
+  configured it enriches the cases (test data, expected results, domain rules, Gherkin) in the user's language
+  without adding paths; demo mode returns the deterministic part. Images (PNG / JPEG / WebP ≤ 4 MB) are transcribed
+  into Mermaid by multimodal providers (Gemini, OpenAI, Claude; new `LlmClient.lireImage`), other providers and demo
+  mode answer 422 "paste Mermaid / BPMN / draw.io instead". BPMN and draw.io are also returned as Mermaid.
+- **BA tools** `redaction-exigences` (notes / e-mail / meeting → RG-xx rules, US-xx stories, AC-xx criteria in one
+  continuous list read as is by the acceptance-criteria coverage, Gherkin, open questions, out of scope) and
+  `revue-exigences` (score /100, INVEST + ISO/IEC/IEEE 29148 grid, quoted vague words, missing cases, contradictions,
+  non-testable criteria rewritten, domain gaps, stakeholder questions, improved version). Rule-based demo answers for
+  both (vague-word list, criteria count, missing errors / limits / roles / empty states / concurrency, pack rules not
+  mentioned). New sidebar group "Analyse métier (BA)".
+- **Domain packs** in `backend/src/main/resources/metiers/*.yml` (generic, finance, insurance, banking & payments,
+  health, e-commerce, HR, public sector), documented for non-developers in `metiers/README.md`; optional external
+  folder `REVIA_METIERS_DOSSIER`. Loaded and validated at startup (unknown keys, empty fields, rule-id format and
+  duplicates fail fast with file + field). `GET /api/metiers`; optional `metier` on tool requests and on
+  `POST /api/revues` adds the pack (rules, regulation reminders, BA questions, pitfalls, glossary; ≤ 10 000 chars) to
+  the system prompt. "Métier" selector on the tools, review and flowchart pages.
+### Changed
+- The acceptance-criteria extractor reads explicit `AC-n` lines first (any heading language), keeping the story
+  reference: `- AC-01 (US-01) : …` → "(US-01) …".
+- Common AI instructions now cover business analysis (requirements are no longer answered as "off-topic").
+- Tests: backend 85 → 118, frontend 34 → 42.
+
 ## 1.4.0 – 2026-10-22
 ### Added
 - **Plans and payment (Paddle Billing, merchant of record: VAT handled worldwide)**: Gratuit / Pro / Équipe with daily

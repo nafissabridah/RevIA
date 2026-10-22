@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.revia.ai.AssistantIA;
+import com.revia.ai.FlowchartIA;
 import com.revia.ai.VerificateurCriteres;
 import com.revia.error.ApiException;
 import com.revia.error.ErrorCode;
@@ -35,10 +36,21 @@ public class AssistantController {
 
     private final AssistantIA assistant;
     private final VerificateurCriteres criteres;
+    private final FlowchartIA flowcharts;
 
-    public AssistantController(AssistantIA assistant, VerificateurCriteres criteres) {
+    public AssistantController(AssistantIA assistant, VerificateurCriteres criteres, FlowchartIA flowcharts) {
         this.assistant = assistant;
         this.criteres = criteres;
+        this.flowcharts = flowcharts;
+    }
+
+    /**
+     * Flowchart → tests : chemins, défauts et cas de test calculés sans IA à partir d'un diagramme Mermaid, BPMN 2.0
+     * ou draw.io (ou d'une image transcrite en Mermaid par un modèle multimodal), puis enrichis par l'IA si elle est branchée.
+     */
+    @PostMapping("/flowchart")
+    public FlowchartIA.Resultat flowchart(@Valid @RequestBody Dtos.FlowchartRequest req) {
+        return flowcharts.analyser(req.source(), req.format(), req.image(), req.metier(), !Boolean.FALSE.equals(req.enrichir()));
     }
 
     /** La PR remplit-elle la user story ? Verdict par critère d'acceptation, avec preuves (UI et CI). */
@@ -59,7 +71,7 @@ public class AssistantController {
     @PostMapping("/outils/{outil}")
     public Dtos.AssistantReponse outil(@PathVariable String outil, @Valid @RequestBody Dtos.OutilRequest req) {
         AssistantIA.Outil o = AssistantIA.Outil.depuis(outil);
-        return dto(assistant.repondre(assistant.preparerOutil(o, req.code(), req.langage(), req.cible())), o.id());
+        return dto(assistant.repondre(assistant.preparerOutil(o, req.code(), req.langage(), req.cible(), req.metier())), o.id());
     }
 
     @PostMapping(value = "/chat/flux", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -70,7 +82,7 @@ public class AssistantController {
     @PostMapping(value = "/outils/{outil}/flux", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter outilEnDirect(@PathVariable String outil, @Valid @RequestBody Dtos.OutilRequest req) {
         AssistantIA.Outil o = AssistantIA.Outil.depuis(outil);
-        return diffuser(assistant.preparerOutil(o, req.code(), req.langage(), req.cible()), o.id());
+        return diffuser(assistant.preparerOutil(o, req.code(), req.langage(), req.cible(), req.metier()), o.id());
     }
 
     private AssistantIA.Demande chat(Dtos.ChatRequest req) {

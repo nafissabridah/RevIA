@@ -13,7 +13,7 @@
 
     <groupId>com.revia</groupId>
     <artifactId>revia-backend</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <name>RevIA backend</name>
     <description>RevIA - assistant intelligent de revue de code (API REST Spring Boot)</description>
 
@@ -92,6 +92,11 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-anthropic</artifactId>
+        </dependency>
+        <!-- Packs métier (YAML, éditables sans code) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.retry</groupId>

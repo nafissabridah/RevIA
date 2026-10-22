@@ -175,11 +175,19 @@ public class LlmConfig {
         int jetonsOutils = "ollama".equals(fournisseur) ? Math.min(ai.maxTokensOutils(), 4096) : ai.maxTokensOutils();
         OpenAiChatOptions repli = OpenAiChatOptions.builder().maxTokens(jetonsOutils).build();
         if (!modeleChoisi.isBlank() || p.modeleOutils().isBlank()) {
-            return new SpringAiLlmClient(fournisseur, modele, model, json, texte, repli);
+            return new SpringAiLlmClient(fournisseur, modele, model, json, texte, repli, null, images(fournisseur));
         }
         log.info("RevIA : outils IA sur {} (repli sur {} si son quota est atteint)", p.modeleOutils(), modele);
         OpenAiChatOptions outils = OpenAiChatOptions.builder().model(p.modeleOutils()).maxTokens(ai.maxTokensOutils()).build();
-        return new SpringAiLlmClient(fournisseur, modele, model, json, texte, outils, repli);
+        return new SpringAiLlmClient(fournisseur, modele, model, json, texte, outils, repli, images(fournisseur));
+    }
+
+    /**
+     * Fournisseurs dont le modèle par défaut lit les images (transcription d'un flowchart photographié).
+     * Groq (gpt-oss), Mistral (Codestral), OpenRouter « free » et les petits modèles Ollama ne le font pas.
+     */
+    static boolean images(String fournisseur) {
+        return Set.of("gemini", "openai").contains(fournisseur);
     }
 
     private LlmClient anthropic(ReviaProperties.Ai ai, String modeleChoisi, String cle, String url) {
@@ -203,7 +211,7 @@ public class LlmConfig {
                 .build();
         log.info("RevIA : fournisseur Anthropic (Claude), modèle {}, température {}, délai {} s", modele, ai.temperature(), ai.timeoutSec());
         return new SpringAiLlmClient("anthropic", modele, model, null, null,
-                AnthropicChatOptions.builder().maxTokens(ai.maxTokensOutils()).build());
+                AnthropicChatOptions.builder().maxTokens(ai.maxTokensOutils()).build(), null, true);
     }
 
     /**

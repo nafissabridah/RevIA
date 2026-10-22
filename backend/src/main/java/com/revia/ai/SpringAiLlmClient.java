@@ -8,6 +8,10 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.ChatOptions;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
+
 import com.revia.error.ErrorCode;
 
 import reactor.core.publisher.Flux;
@@ -28,6 +32,8 @@ public class SpringAiLlmClient implements LlmClient {
     private final ChatOptions optionsOutils;
     /** Si le modèle des outils (plus puissant) atteint son quota : mêmes options sur le modèle par défaut. */
     private final ChatOptions optionsOutilsRepli;
+    /** Le modèle lit les images (Gemini, OpenAI, Claude) : transcription d'un diagramme photographié. */
+    private final boolean images;
 
     public SpringAiLlmClient(String fournisseur, String modele, ChatModel chatModel) {
         this(fournisseur, modele, chatModel, null, null, null);
@@ -45,6 +51,13 @@ public class SpringAiLlmClient implements LlmClient {
 
     public SpringAiLlmClient(String fournisseur, String modele, ChatModel chatModel, ChatOptions optionsJson,
                              ChatOptions optionsTexte, ChatOptions optionsOutils, ChatOptions optionsOutilsRepli) {
+        this(fournisseur, modele, chatModel, optionsJson, optionsTexte, optionsOutils, optionsOutilsRepli, false);
+    }
+
+    public SpringAiLlmClient(String fournisseur, String modele, ChatModel chatModel, ChatOptions optionsJson,
+                             ChatOptions optionsTexte, ChatOptions optionsOutils, ChatOptions optionsOutilsRepli,
+                             boolean images) {
+        this.images = images;
         this.fournisseur = fournisseur;
         this.modele = modele;
         this.chatClient = chatModel == null ? null : ChatClient.create(chatModel);
@@ -103,6 +116,22 @@ public class SpringAiLlmClient implements LlmClient {
                 .doOnNext(m -> ecrit.set(true))
                 .onErrorResume(e -> !ecrit.get() && quotaAvecRepli(e),
                         e -> requete(promptSysteme, messageUtilisateur, optionsOutilsRepli).stream().content());
+    }
+
+    @Override
+    public boolean litImages() {
+        return images && chatClient != null;
+    }
+
+    @Override
+    public String lireImage(String promptSysteme, String consigne, byte[] image, String typeMime) {
+        if (!litImages()) {
+            return LlmClient.super.lireImage(promptSysteme, consigne, image, typeMime);
+        }
+        MimeType type = MimeTypeUtils.parseMimeType(typeMime);
+        ChatClient.ChatClientRequestSpec r = chatClient.prompt().system(promptSysteme)
+                .user(u -> u.text(consigne).media(type, new ByteArrayResource(image)));
+        return (optionsOutils == null ? r : r.options(optionsOutils)).call().content();
     }
 
     /** Quota du modèle des outils atteint et un modèle de repli existe : on ne dérange pas l'utilisateur. */

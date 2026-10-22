@@ -30,6 +30,14 @@ describe('i18n', () => {
     expect(tr("Langue des réponses de l'IA")).toBe('AI answer language');
   });
 
+  it('traduit les messages de l’API du flowchart et des packs métier, y compris les messages variables', () => {
+    langueCourante.set('en');
+    expect(tr("Ce fournisseur d'IA ne sait pas lire les images : collez plutôt le diagramme en Mermaid, BPMN ou draw.io."))
+      .toBe('This AI provider cannot read images: paste the diagram as Mermaid, BPMN or draw.io instead.');
+    expect(tr('Métier inconnu : astrologie.')).toBe('Unknown industry: astrologie.');
+    expect(tr('Mermaid illisible ligne 2 : lien attendu.')).toBe('Unreadable Mermaid on line 2: lien attendu.');
+  });
+
   it('le pipe « t » suit la langue courante', () => {
     const pipe = new TPipe();
     langueCourante.set('en');

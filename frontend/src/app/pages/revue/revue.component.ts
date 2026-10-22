@@ -13,6 +13,7 @@ import { CodeEditorComponent } from '../../shared/code-editor.component';
 import { IconeComponent } from '../../shared/icone.component';
 import { ScoreRingComponent } from '../../shared/score-ring.component';
 import { TPipe } from '../../core/i18n';
+import { SelecteurMetierComponent } from '../../shared/selecteur-metier.component';
 
 const CLE_BROUILLON = 'revia.brouillon';
 const MAX_LIGNES = 2000;
@@ -30,7 +31,7 @@ type Filtre = 'tous' | Categorie;
 @Component({
   selector: 'app-revue',
   standalone: true,
-  imports: [TPipe, FormsModule, RouterLink, DecimalPipe, CodeEditorComponent, ScoreRingComponent, GraviteBadgeComponent,
+  imports: [TPipe, SelecteurMetierComponent, FormsModule, RouterLink, DecimalPipe, CodeEditorComponent, ScoreRingComponent, GraviteBadgeComponent,
     CategorieBadgeComponent, IconeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -45,6 +46,7 @@ type Filtre = 'tous' | Categorie;
       <select class="input petit-select" [ngModel]="mode()" (ngModelChange)="mode.set($event)" [attr.aria-label]="'Mode d\\'analyse' | t">
         @for (m of modes; track m.valeur) { <option [value]="m.valeur">{{ 'Mode :' | t }} {{ m.libelle | t }}</option> }
       </select>
+      <app-selecteur-metier [metier]="metier()" (metierChange)="metier.set($event)" />
       <button class="btn" type="button" (click)="fichier.click()"><app-icone nom="import" />{{ 'Importer un fichier' | t }}</button>
       <input #fichier type="file" hidden [accept]="acceptes" (change)="importer($event)" />
       <button class="btn primaire" type="button" (click)="lancer()" [disabled]="analyse()">
@@ -276,6 +278,8 @@ export class RevueComponent implements OnDestroy {
   readonly titre = signal('');
   readonly langage = signal('auto');
   readonly mode = signal('complet');
+  /** Pack métier facultatif : le code qui enfreint une règle du domaine (ex. montant en double) devient un bug. */
+  readonly metier = signal('');
   readonly revue = signal<RevueDetail | null>(null);
 
   exporterSarif(id: number): void {
@@ -356,7 +360,7 @@ export class RevueComponent implements OnDestroy {
     this.analyse.set(true);
     this.etape.set(0);
     this.minuteur = setInterval(() => this.etape.update((e) => Math.min(e + 1, ETAPES.length - 1)), 900);
-    this.api.soumettre({ titre: titre || undefined, langage: this.langage(), code, mode: this.mode() }).subscribe({
+    this.api.soumettre({ titre: titre || undefined, langage: this.langage(), code, mode: this.mode(), metier: this.metier() || undefined }).subscribe({
       next: (r) => {
         this.arreter();
         try { localStorage.removeItem(CLE_BROUILLON); } catch { /* ignoré */ }

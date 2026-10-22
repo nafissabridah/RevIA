@@ -97,6 +97,16 @@ class AnalyseurIATest {
     }
 
     @Test
+    @DisplayName("Revue avec pack métier : règles du domaine ajoutées au prompt système, violations signalées en bug")
+    void revueMetier() {
+        when(llm.completer(anyString(), anyString())).thenReturn(VALIDE);
+        analyseur.analyser(CODE, "java", "complet", new com.revia.metier.PacksMetier().contexte("finance"));
+        ArgumentCaptor<String> sys = ArgumentCaptor.forClass(String.class);
+        verify(llm).completer(sys.capture(), anyString());
+        assertThat(sys.getValue()).contains(AnalyseurIA.CONSIGNE_METIER.trim(), "FIN-01", "DOMAINE MÉTIER");
+    }
+
+    @Test
     @DisplayName("JSON invalide : une nouvelle tentative automatique, puis succès")
     void nouvelleTentative() {
         when(llm.completer(anyString(), anyString())).thenReturn("Voici mon analyse : tout va bien", VALIDE);

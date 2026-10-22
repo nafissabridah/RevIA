@@ -180,7 +180,86 @@ export interface PromptSysteme {
 }
 
 export type OutilIA = 'tests' | 'documentation' | 'explication' | 'commit' | 'refactoring' | 'conversion'
-  | 'cas-de-test' | 'e2e' | 'tests-api' | 'rapport-bug' | 'analyse-logs' | 'donnees-test' | 'revue-tests';
+  | 'cas-de-test' | 'e2e' | 'tests-api' | 'rapport-bug' | 'analyse-logs' | 'donnees-test' | 'revue-tests'
+  | 'redaction-exigences' | 'revue-exigences';
+
+/** Pack métier (finance, assurance…) : ses règles sont ajoutées au prompt des outils. */
+export interface Metier {
+  id: string;
+  nomFr: string;
+  nomEn: string;
+  description: string;
+  descriptionEn: string;
+  nbRegles: number;
+  nbPieges: number;
+  nbReglementations: number;
+  nbQuestions: number;
+  nbTermes: number;
+}
+
+/** Flowchart → tests : résultat de l'analyse déterministe (et de l'enrichissement IA éventuel). */
+export type TypeNoeud = 'DEBUT' | 'FIN' | 'TACHE' | 'DECISION' | 'INCLUSIVE' | 'PARALLELE' | 'EVENEMENT';
+
+export interface NoeudFlowchart {
+  id: string;
+  libelle: string;
+  type: TypeNoeud;
+  terminal: boolean;
+}
+
+export interface CheminFlowchart {
+  id: string;
+  noeuds: string[];
+  etapes: string[];
+  conditions: string[];
+  fin: string;
+  complet: boolean;
+}
+
+export interface ProblemeFlowchart {
+  type: string;
+  gravite: 'majeure' | 'mineure' | 'info';
+  noeud: string | null;
+  libelle: string | null;
+  message: string;
+}
+
+export interface CasDeTestFlowchart {
+  id: string;
+  type: 'chemin' | 'limite';
+  titre: string;
+  etapes: string[];
+  donnees: string | null;
+  attendu: string;
+  chemin: string | null;
+}
+
+export interface AnalyseFlowchart {
+  format: 'mermaid' | 'bpmn' | 'drawio' | 'image';
+  mermaid: string;
+  noeuds: NoeudFlowchart[];
+  arcs: { source: string; cible: string; condition: string | null }[];
+  chemins: CheminFlowchart[];
+  cheminsTronques: boolean;
+  problemes: ProblemeFlowchart[];
+  casDeTest: CasDeTestFlowchart[];
+  remarques: string[];
+  enrichissement: string | null;
+  avertissement: string | null;
+  metier: string | null;
+  nbMasquages: number;
+  dureeMs: number;
+  fournisseur: string;
+  modele: string;
+}
+
+export interface FlowchartRequete {
+  source?: string;
+  format?: 'auto' | 'mermaid' | 'bpmn' | 'drawio';
+  image?: string;
+  metier?: string;
+  enrichir?: boolean;
+}
 
 export interface MessageChat {
   role: 'utilisateur' | 'assistant';

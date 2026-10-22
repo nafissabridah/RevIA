@@ -51,7 +51,7 @@ export class FluxIaService {
     return this.flux('/api/assistant/chat/flux', { messages, code: code || null, langage: langage || null });
   }
 
-  outil(outil: OutilIA, req: { code: string; langage: string; cible?: string }): Observable<EvenementFlux> {
+  outil(outil: OutilIA, req: { code: string; langage: string; cible?: string; metier?: string }): Observable<EvenementFlux> {
     return this.flux(`/api/assistant/outils/${outil}/flux`, req);
   }
 
