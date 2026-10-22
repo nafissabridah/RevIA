@@ -15,6 +15,10 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 
     boolean existsByEmailIgnoreCase(String email);
 
+    Optional<Utilisateur> findFirstByPaddleSubscriptionId(String paddleSubscriptionId);
+
+    Optional<Utilisateur> findFirstByPaddleCustomerId(String paddleCustomerId);
+
     @Query("select count(a) from Administrateur a")
     long countAdministrateurs();
 

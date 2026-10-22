@@ -102,8 +102,7 @@ public class DataInitializer implements ApplicationRunner {
             log.info("Données de démonstration ignorées : elles ne sont générées qu'avec le fournisseur demo (pas de coût d'API).");
             return;
         }
-        Developpeur sarra = utilisateurs.save(new Developpeur("Sarra A.", DEMO_EMAIL, encoder.encode(DEMO_MDP),
-                props.quotas().revuesParJour()));
+        Developpeur sarra = utilisateurs.save(new Developpeur("Sarra A.", DEMO_EMAIL, encoder.encode(DEMO_MDP)));
         try {
             Resource manifeste = new PathMatchingResourcePatternResolver().getResource("classpath:jeu-essai/manifest.json");
             JsonNode extraits;

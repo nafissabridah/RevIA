@@ -51,7 +51,7 @@ public class AnalyseurStatique implements LlmClient {
     @Override
     public String completer(String promptSysteme, String messageUtilisateur) {
         if (promptSysteme.startsWith(VerificateurCriteres.OUTIL)) {
-            return VerificateurCriteres.demo(messageUtilisateur);
+            return VerificateurCriteres.demo(promptSysteme, messageUtilisateur);
         }
         Map<Integer, String> lignes = new LinkedHashMap<>();
         for (String l : messageUtilisateur.split("\\R")) {

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,6 +44,12 @@ public class AdminController {
     public Dtos.UtilisateurDto quota(@AuthenticationPrincipal UtilisateurConnecte u, @PathVariable Long id,
                                      @Valid @RequestBody Dtos.QuotaRequest req) {
         return admin.definirQuota(u.id(), id, req.quota());
+    }
+
+    /** Supprime la surcharge : le quota redevient celui de l'offre (GRATUIT / PRO / EQUIPE). */
+    @DeleteMapping("/utilisateurs/{id}/quota")
+    public Dtos.UtilisateurDto reinitialiserQuota(@AuthenticationPrincipal UtilisateurConnecte u, @PathVariable Long id) {
+        return admin.reinitialiserQuota(u.id(), id);
     }
 
     @PutMapping("/utilisateurs/{id}/blocage")

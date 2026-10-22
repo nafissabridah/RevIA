@@ -23,12 +23,15 @@ public final class Mapper {
     public static Dtos.UtilisateurDto utilisateur(Utilisateur u, Long nbRevues) {
         Integer quota = null;
         Integer duJour = null;
+        boolean personnalise = false;
         if (u instanceof Developpeur d) {
             quota = d.getQuotaJournalier();
             duJour = d.getRevuesDuJour();
+            personnalise = d.isQuotaPersonnalise();
         }
         return new Dtos.UtilisateurDto(u.getId(), u.getNom(), u.getEmail(), u.role(), quota, duJour, u.isBloque(),
-                u.getCreeLe(), nbRevues);
+                u.getCreeLe(), nbRevues, u.getPlan().name(), personnalise, u.getAbonnementStatut(),
+                u.getAbonnementFinPeriode());
     }
 
     public static Dtos.RevueResume resume(Revue r) {

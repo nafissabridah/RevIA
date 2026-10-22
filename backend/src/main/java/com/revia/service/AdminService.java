@@ -57,6 +57,20 @@ public class AdminService {
         return Mapper.utilisateur(d, revues.countByAuteurId(d.getId()));
     }
 
+    /** Efface la surcharge de quota : le compte suit à nouveau le quota de son offre. */
+    @Transactional
+    public Dtos.UtilisateurDto reinitialiserQuota(Long adminId, Long devId) {
+        admin(adminId);
+        Utilisateur u = utilisateurs.findById(devId).orElseThrow(() -> new ApiException(ErrorCode.INTROUVABLE, "Utilisateur introuvable."));
+        if (!(u instanceof Developpeur d)) {
+            throw new ApiException(ErrorCode.VALIDATION, "Le quota ne s'applique qu'aux comptes développeur.");
+        }
+        d.reinitialiserQuota();
+        log.info("Admin {} : quota de l'utilisateur {} remis au quota de son offre ({})", adminId, devId, d.getPlan());
+        quotas.charger(d);
+        return Mapper.utilisateur(d, revues.countByAuteurId(d.getId()));
+    }
+
     @Transactional
     public Dtos.UtilisateurDto bloquerCompte(Long adminId, Long userId, boolean bloque) {
         Administrateur admin = admin(adminId);

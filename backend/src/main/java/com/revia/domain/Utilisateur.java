@@ -6,6 +6,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,6 +43,28 @@ public abstract class Utilisateur {
 
     @Column(nullable = false)
     private boolean bloque;
+
+    /** Offre commerciale (mise à jour par les webhooks Paddle). */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Plan plan = Plan.GRATUIT;
+
+    @Column(name = "paddle_customer_id", length = 64)
+    private String paddleCustomerId;
+
+    @Column(name = "paddle_subscription_id", length = 64)
+    private String paddleSubscriptionId;
+
+    /** Statut Paddle de l'abonnement : active, trialing, past_due, paused, canceled (null = jamais abonné). */
+    @Column(name = "abonnement_statut", length = 20)
+    private String abonnementStatut;
+
+    @Column(name = "abonnement_fin_periode")
+    private LocalDateTime abonnementFinPeriode;
+
+    /** occurred_at du dernier événement Paddle appliqué (les événements plus anciens sont ignorés). */
+    @Column(name = "abonnement_maj_le")
+    private LocalDateTime abonnementMajLe;
 
     protected Utilisateur() {
     }
@@ -89,5 +113,61 @@ public abstract class Utilisateur {
 
     public void setBloque(boolean bloque) {
         this.bloque = bloque;
+    }
+
+    public Plan getPlan() {
+        return plan == null ? Plan.GRATUIT : plan;
+    }
+
+    public void setPlan(Plan plan) {
+        this.plan = plan == null ? Plan.GRATUIT : plan;
+    }
+
+    public String getPaddleCustomerId() {
+        return paddleCustomerId;
+    }
+
+    public void setPaddleCustomerId(String paddleCustomerId) {
+        this.paddleCustomerId = paddleCustomerId;
+    }
+
+    public String getPaddleSubscriptionId() {
+        return paddleSubscriptionId;
+    }
+
+    public void setPaddleSubscriptionId(String paddleSubscriptionId) {
+        this.paddleSubscriptionId = paddleSubscriptionId;
+    }
+
+    public String getAbonnementStatut() {
+        return abonnementStatut;
+    }
+
+    public void setAbonnementStatut(String abonnementStatut) {
+        this.abonnementStatut = abonnementStatut;
+    }
+
+    public LocalDateTime getAbonnementFinPeriode() {
+        return abonnementFinPeriode;
+    }
+
+    public void setAbonnementFinPeriode(LocalDateTime abonnementFinPeriode) {
+        this.abonnementFinPeriode = abonnementFinPeriode;
+    }
+
+    public LocalDateTime getAbonnementMajLe() {
+        return abonnementMajLe;
+    }
+
+    public void setAbonnementMajLe(LocalDateTime abonnementMajLe) {
+        this.abonnementMajLe = abonnementMajLe;
+    }
+
+    /** Vrai si un abonnement Paddle payant est en cours (actif, essai ou paiement en retard). */
+    public boolean abonnementEnCours() {
+        return abonnementStatut != null && switch (abonnementStatut) {
+            case "active", "trialing", "past_due" -> true;
+            default -> false;
+        };
     }
 }

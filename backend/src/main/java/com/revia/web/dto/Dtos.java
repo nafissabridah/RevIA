@@ -38,8 +38,14 @@ public final class Dtos {
     public record AuthResponse(String token, long expireDansSecondes, UtilisateurDto utilisateur) {
     }
 
+    /**
+     * {@code quotaJournalier} = quota effectif ; {@code quotaPersonnalise} = vrai si l'administrateur a fixé une
+     * surcharge (elle l'emporte sur le quota de l'offre {@code plan}).
+     */
     public record UtilisateurDto(Long id, String nom, String email, String role, Integer quotaJournalier,
-                                 Integer revuesDuJour, boolean bloque, LocalDateTime creeLe, Long nbRevues) {
+                                 Integer revuesDuJour, boolean bloque, LocalDateTime creeLe, Long nbRevues,
+                                 String plan, boolean quotaPersonnalise, String abonnementStatut,
+                                 LocalDateTime abonnementFinPeriode) {
     }
 
     public record ProfilRequest(
@@ -145,6 +151,35 @@ public final class Dtos {
     public record SystemeInfo(String application, String version, String fournisseur, String modele, boolean disponible,
                               double temperature, int timeoutSec, int quotaParDefaut, int maxLignes,
                               boolean essaiActif, int essaiMaxLignes, List<String> chaine) {
+    }
+
+    // ---------- Abonnement (Paddle Billing) et compte (RGPD)
+
+    /** Configuration publique du paiement : le jeton client Paddle est public par conception (jamais la clé d'API). */
+    public record AbonnementConfig(boolean actif, String environnement, String clientToken, String prixPro,
+                                   String prixEquipe, boolean portail, Map<String, Integer> quotas) {
+    }
+
+    public record AbonnementDto(String plan, int quotaOffre, Integer quotaJournalier, boolean quotaPersonnalise,
+                                String statut, LocalDateTime finPeriode, boolean abonnementEnCours,
+                                boolean portailDisponible) {
+    }
+
+    /** Liens temporaires du portail client Paddle (à ne pas stocker). */
+    public record PortailDto(String url, String urlResiliation) {
+    }
+
+    public record SuppressionCompteRequest(
+            @NotBlank(message = "Saisissez votre mot de passe pour confirmer.") @Size(max = 72) String motDePasse) {
+    }
+
+    /** {@code avertissement} : non nul si un abonnement Paddle est encore actif (à résilier séparément). */
+    public record SuppressionCompteReponse(boolean supprime, String avertissement) {
+    }
+
+    /** Export RGPD (droit d'accès / portabilité) : jamais de hash de mot de passe ni d'empreinte de jeton. */
+    public record ExportCompte(LocalDateTime genereLe, String application, UtilisateurDto compte,
+                               AbonnementDto abonnement, List<JetonDto> jetonsApi, List<RevueDetail> revues) {
     }
 
     // ---------- Intégrations (CI, API, essai public)

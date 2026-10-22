@@ -25,6 +25,10 @@ public interface RevueRepository extends JpaRepository<Revue, Long>, JpaSpecific
 
     long countByAuteurId(Long auteurId);
 
+    /** Export RGPD : toutes les revues de l'utilisateur, problèmes et corrections compris. */
+    @EntityGraph(attributePaths = {"problemes", "problemes.correction"})
+    List<Revue> findByAuteurIdOrderByCreeLeAsc(Long auteurId);
+
     @EntityGraph(attributePaths = {"problemes"})
     List<Revue> findByAuteurIdAndCreeLeGreaterThanEqualOrderByCreeLeAsc(Long auteurId, LocalDateTime depuis);
 

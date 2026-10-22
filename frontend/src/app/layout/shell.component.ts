@@ -44,7 +44,8 @@ import { IconeComponent } from '../shared/icone.component';
         <div class="bas">
           @if (auth.estDeveloppeur()) {
             <div class="quota" [class.plein]="pourcentage() >= 100">
-              <div class="q-titre">{{ l.t('Quota du jour', 'Daily quota') }}</div>
+              <div class="q-titre">{{ l.t('Quota du jour', 'Daily quota') }}
+                <a class="q-offre" routerLink="/parametres" [title]="l.t('Offre et abonnement', 'Plan and subscription')">{{ nomOffre() }}</a></div>
               <div class="jauge"><span [style.width.%]="pourcentage()"></span></div>
               <div class="q-texte">{{ auth.utilisateur()?.revuesDuJour ?? 0 }} / {{ auth.utilisateur()?.quotaJournalier ?? 0 }} {{ l.t('revues · réinitialisé à minuit', 'reviews · resets at midnight') }}</div>
             </div>
@@ -96,7 +97,8 @@ import { IconeComponent } from '../shared/icone.component';
     .compteur { margin-left: auto; font-size: 11px; background: #262b52; color: #b9bff0; border-radius: 6px; padding: 1px 7px; }
     .bas { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
     .quota { background: var(--sidebar-2); border: 1px solid #262b52; border-radius: 10px; padding: 12px; }
-    .q-titre { color: #fff; font-weight: 600; font-size: 12.5px; margin-bottom: 8px; }
+    .q-titre { color: #fff; font-weight: 600; font-size: 12.5px; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 8px; }
+    .q-offre { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #c7d2fe; background: #2b2f63; border-radius: 6px; padding: 1px 7px; text-decoration: none; }
     .jauge { height: 5px; background: #2a2f58; border-radius: 4px; overflow: hidden; }
     .jauge span { display: block; height: 100%; background: linear-gradient(90deg, #6d6af8, #a5b4fc); border-radius: 4px; transition: width .4s; }
     .plein .jauge span { background: var(--critique); }
@@ -140,6 +142,12 @@ export class ShellComponent implements OnInit {
     demo: 'Démo', gemini: 'Gemini', groq: 'Groq', openrouter: 'OpenRouter', mistral: 'Mistral', ollama: 'Local', openai: 'OpenAI', anthropic: 'Claude',
   };
   readonly initiales = initiales;
+  /** Offre affichée sur la carte de quota (GRATUIT / PRO / EQUIPE). */
+  readonly nomOffre = computed(() => {
+    const p = this.auth.utilisateur()?.plan ?? 'GRATUIT';
+    return p === 'PRO' ? 'Pro' : p === 'EQUIPE' ? this.l.t('Équipe', 'Team') : this.l.t('Gratuit', 'Free');
+  });
+
   readonly pourcentage = computed(() => {
     const u = this.auth.utilisateur();
     if (!u?.quotaJournalier) return 0;

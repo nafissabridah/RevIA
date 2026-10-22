@@ -19,7 +19,9 @@ public record ReviaProperties(
         @DefaultValue Cors cors,
         @DefaultValue("false") boolean seedDemoData,
         @DefaultValue Essai essai,
-        @DefaultValue Integrations integrations) {
+        @DefaultValue Integrations integrations,
+        @DefaultValue Offres offres,
+        @DefaultValue Paddle paddle) {
 
     @ConstructorBinding
     public ReviaProperties {
@@ -27,7 +29,8 @@ public record ReviaProperties(
 
     /** Constructeur historique (tests) : essai public et intégrations avec leurs valeurs par défaut. */
     public ReviaProperties(Ai ai, Security security, Quotas quotas, Admin admin, Cors cors, boolean seedDemoData) {
-        this(ai, security, quotas, admin, cors, seedDemoData, new Essai(true, 150, 3, 300), new Integrations(""));
+        this(ai, security, quotas, admin, cors, seedDemoData, new Essai(true, 150, 3, 300), new Integrations(""),
+                new Offres(20, 200, 1000), Paddle.inactif());
     }
 
     /**
@@ -98,8 +101,8 @@ public record ReviaProperties(
         }
     }
 
+    /** Limites de débit. Le quota journalier de revues dépend désormais de l'offre : voir {@link Offres}. */
     public record Quotas(
-            @DefaultValue("50") int revuesParJour,
             @DefaultValue("10") int analysesParMinute,
             @DefaultValue("10") int connexionsParMinute) {
     }
@@ -120,6 +123,70 @@ public record ReviaProperties(
 
     /** URL publique de l'application (liens dans les rapports SARIF / CI). */
     public record Integrations(@DefaultValue("") String urlPublique) {
+    }
+
+    /**
+     * Quota journalier de revues de chaque offre. Une surcharge définie par l'administrateur sur un compte
+     * l'emporte toujours (voir {@code Developpeur}).
+     */
+    public record Offres(
+            @DefaultValue("20") int gratuit,
+            @DefaultValue("200") int pro,
+            @DefaultValue("1000") int equipe) {
+
+        public int quota(com.revia.domain.Plan plan) {
+            return switch (plan == null ? com.revia.domain.Plan.GRATUIT : plan) {
+                case PRO -> pro;
+                case EQUIPE -> equipe;
+                case GRATUIT -> gratuit;
+            };
+        }
+    }
+
+    /**
+     * Paddle Billing (marchand officiel : encaisse et reverse la TVA dans le monde entier). Désactivé tant que
+     * le jeton client et le secret de webhook ne sont pas renseignés.
+     * <ul>
+     *   <li>{@code clientToken} : jeton <b>public</b> (test_… / live_…) envoyé au navigateur pour Paddle.js ;</li>
+     *   <li>{@code webhookSecret} : secret de la destination de notification (pdl_ntfset_…), serveur uniquement ;</li>
+     *   <li>{@code apiKey} : clé d'API serveur (facultative) pour le portail client / la résiliation — jamais exposée ;</li>
+     *   <li>{@code toleranceSec} : âge maximal d'une signature (anti-rejeu). Les SDK Paddle utilisent 5 s ; la valeur
+     *       par défaut (300 s) absorbe un éventuel décalage d'horloge du serveur.</li>
+     * </ul>
+     */
+    public record Paddle(
+            @DefaultValue("sandbox") String env,
+            @DefaultValue("") String clientToken,
+            @DefaultValue("") String webhookSecret,
+            @DefaultValue("") String pricePro,
+            @DefaultValue("") String priceEquipe,
+            @DefaultValue("") String apiKey,
+            @DefaultValue("300") long toleranceSec) {
+
+        public static Paddle inactif() {
+            return new Paddle("sandbox", "", "", "", "", "", 300);
+        }
+
+        public boolean sandbox() {
+            return !"production".equalsIgnoreCase(env == null ? "" : env.trim());
+        }
+
+        /** Paiement proposé dans l'interface : jeton client, secret de webhook et au moins un prix. */
+        public boolean actif() {
+            return !clientToken.isBlank() && !webhookSecret.isBlank() && (!pricePro.isBlank() || !priceEquipe.isBlank());
+        }
+
+        public boolean webhookActif() {
+            return !webhookSecret.isBlank();
+        }
+
+        public boolean apiActive() {
+            return !apiKey.isBlank();
+        }
+
+        public String apiBase() {
+            return sandbox() ? "https://sandbox-api.paddle.com" : "https://api.paddle.com";
+        }
     }
 
     public record Cors(@DefaultValue("http://localhost:4200") List<String> allowedOrigins) {

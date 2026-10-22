@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
 import { LangueService } from '../../core/langue.service';
 import { MARQUE } from '../../core/marque';
-import { RevueDetail } from '../../core/models';
+import { Plan, RevueDetail } from '../../core/models';
+import { PaddleService } from '../../core/paddle.service';
 import { ScoreRingComponent } from '../../shared/score-ring.component';
 
 
@@ -55,9 +56,9 @@ const T = {
     priv: "Installez RevIA sur votre serveur avec Docker et choisissez où part le code : un modèle local Ollama (rien ne sort de votre réseau), ou le fournisseur cloud de votre choix avec votre propre clé et votre propre contrat. Les secrets sont masqués dans tous les cas.",
     tTitre: 'Des tarifs simples', tSous: 'Commencez gratuitement. Passez à l’équipe quand la CI devient indispensable.',
     plans: [
-      { nom: 'Gratuit', prix: '0', unite: '', points: ['1 développeur', '50 revues / jour', 'Rapport + corrections', 'Historique et tableau de bord'], cta: 'Commencer' },
-      { nom: 'Pro', prix: 'pro', unite: '/ dev / mois', points: ['Tout le plan Gratuit', 'Jetons d’API et CI', 'Export SARIF', 'Assistant, outils dev et QA'], cta: 'Essayer Pro', vedette: true },
-      { nom: 'Équipe', prix: 'equipe', unite: '/ dev / mois', points: ['Tout le plan Pro', 'Administration et quotas', 'Prompt système versionné', 'Support prioritaire'], cta: 'Démarrer l’équipe' },
+      { nom: 'Gratuit', code: 'GRATUIT', prix: '0', unite: '', points: ['1 développeur', '{q} revues / jour', 'Rapport + corrections', 'Historique et tableau de bord'], cta: 'Commencer' },
+      { nom: 'Pro', code: 'PRO', prix: 'pro', unite: '/ dev / mois', points: ['Tout le plan Gratuit', '{q} revues / jour', 'Jetons d’API et CI', 'Export SARIF', 'Assistant, outils dev et QA'], cta: 'Essayer Pro', ctaPaye: 'Passer à Pro', vedette: true },
+      { nom: 'Équipe', code: 'EQUIPE', prix: 'equipe', unite: '/ dev / mois', points: ['Tout le plan Pro', '{q} revues / jour', 'Administration et quotas', 'Prompt système versionné', 'Support prioritaire'], cta: 'Démarrer l’équipe', ctaPaye: 'Passer à Équipe' },
       { nom: 'Auto-hébergé', prix: 'Sur devis', unite: '', points: ['Installation sur vos serveurs', 'LLM local ou privé', 'Contrat et SLA', 'Accompagnement à la mise en place'], cta: 'Nous contacter' },
     ],
     faqTitre: 'Questions fréquentes',
@@ -70,6 +71,9 @@ const T = {
       ['Est-ce utile pour les testeurs (QA) ?', 'Oui : les outils QA transforment une user story en plan de test et en scénarios Gherkin, écrivent les tests E2E et d’API, génèrent les données de test, relisent vos tests existants et rédigent les rapports de bug.'],
     ],
     pied: 'Une IA ne remplace pas le relecteur humain : elle l’aide à se concentrer sur l’essentiel.',
+    legal: ['CGU', 'Confidentialité', 'Mentions légales', 'DPA'],
+    taxes: 'Paiement sécurisé par Paddle, marchand officiel : TVA et taxes calculées selon votre pays.',
+    paiementKo: 'Le paiement n’a pas pu s’ouvrir. Réessayez ou écrivez-nous.',
   },
   en: {
     nav: ['Features', 'CI / Pull requests', 'Pricing', 'FAQ'], connexion: 'Sign in', essai: 'Free trial',
@@ -104,9 +108,9 @@ const T = {
     priv: 'Install RevIA on your own server with Docker and choose where code goes: a local Ollama model (nothing leaves your network), or the cloud provider of your choice with your own key and contract. Secrets are masked either way.',
     tTitre: 'Simple pricing', tSous: 'Start free. Move to Team when CI becomes a must.',
     plans: [
-      { nom: 'Free', prix: '0', unite: '', points: ['1 developer', '50 reviews / day', 'Report + fixes', 'History and dashboard'], cta: 'Get started' },
-      { nom: 'Pro', prix: 'pro', unite: '/ dev / month', points: ['Everything in Free', 'API tokens and CI', 'SARIF export', 'AI assistant, dev and QA tools'], cta: 'Try Pro', vedette: true },
-      { nom: 'Team', prix: 'equipe', unite: '/ dev / month', points: ['Everything in Pro', 'Admin and quotas', 'Versioned system prompt', 'Priority support'], cta: 'Start a team' },
+      { nom: 'Free', code: 'GRATUIT', prix: '0', unite: '', points: ['1 developer', '{q} reviews / day', 'Report + fixes', 'History and dashboard'], cta: 'Get started' },
+      { nom: 'Pro', code: 'PRO', prix: 'pro', unite: '/ dev / month', points: ['Everything in Free', '{q} reviews / day', 'API tokens and CI', 'SARIF export', 'AI assistant, dev and QA tools'], cta: 'Try Pro', ctaPaye: 'Upgrade to Pro', vedette: true },
+      { nom: 'Team', code: 'EQUIPE', prix: 'equipe', unite: '/ dev / month', points: ['Everything in Pro', '{q} reviews / day', 'Admin and quotas', 'Versioned system prompt', 'Priority support'], cta: 'Start a team', ctaPaye: 'Upgrade to Team' },
       { nom: 'Self-hosted', prix: 'Custom', unite: '', points: ['Installed on your servers', 'Local or private LLM', 'Contract and SLA', 'Onboarding support'], cta: 'Contact us' },
     ],
     faqTitre: 'FAQ',
@@ -119,6 +123,9 @@ const T = {
       ['Is it useful for testers (QA)?', 'Yes: the QA tools turn a user story into a test plan and Gherkin scenarios, write E2E and API tests, generate test data, review your existing tests and write bug reports.'],
     ],
     pied: 'AI does not replace human reviewers: it helps them focus on what matters.',
+    legal: ['Terms', 'Privacy', 'Legal notice', 'DPA'],
+    taxes: 'Secure payment by Paddle, merchant of record: VAT and sales tax calculated for your country.',
+    paiementKo: 'Checkout could not open. Try again or e-mail us.',
   },
 };
 
@@ -239,15 +246,19 @@ jobs:
           <div class="plan" [class.vedette]="p.vedette">
             <h3>{{ p.nom }}</h3>
             <div class="prix">{{ prix(p.prix) }}<small>{{ p.unite }}</small></div>
-            <ul>@for (x of p.points; track x) { <li>✓ {{ x }}</li> }</ul>
+            <ul>@for (x of p.points; track x) { <li>✓ {{ point(x, p.code) }}</li> }</ul>
             @if ($last) {
               <a class="btn fantome" [href]="'mailto:' + marque.contact + '?subject=RevIA%20self-hosted'">{{ p.cta }}</a>
+            } @else if (p.ctaPaye && paddle.prixDisponible($any(p.code))) {
+              <button class="btn" [class.primaire]="p.vedette" [class.fantome]="!p.vedette" type="button" (click)="souscrire($any(p.code))">{{ p.ctaPaye }}</button>
             } @else {
               <a class="btn" [class.primaire]="p.vedette" [class.fantome]="!p.vedette" routerLink="/inscription">{{ p.cta }}</a>
             }
           </div>
         }
       </div>
+      @if (paddle.actif()) { <p class="centre taxes">{{ t().taxes }}</p> }
+      @if (erreurPaiement()) { <p class="centre taxes" role="alert">{{ erreurPaiement() }}</p> }
     </section>
 
     <section class="bloc" id="faq">
@@ -258,6 +269,8 @@ jobs:
     <footer>
       <span>© {{ annee }} RevIA</span><span>{{ t().pied }}</span>
       <a [href]="marque.depot" target="_blank" rel="noopener">GitHub</a><a [href]="'mailto:' + marque.contact">{{ marque.contact }}</a>
+      <a routerLink="/legal/cgu">{{ t().legal[0] }}</a><a routerLink="/legal/confidentialite">{{ t().legal[1] }}</a>
+      <a routerLink="/legal/mentions-legales">{{ t().legal[2] }}</a><a routerLink="/legal/dpa">{{ t().legal[3] }}</a>
     </footer>
   `,
   styles: [`
@@ -330,6 +343,7 @@ jobs:
     .prix { font-size: 34px; font-weight: 800; margin: 10px 0 14px; } .prix small { font-size: 13px; font-weight: 500; color: #9aa0c8; margin-left: 6px; }
     .plan ul { list-style: none; padding: 0; margin: 0 0 20px; color: #b9bedf; line-height: 2; font-size: 14px; flex: 1; }
     .plan .btn { justify-content: center; }
+    .taxes { font-size: 12.5px; color: #8b91bb; margin-top: 14px; }
     .faq { max-width: 780px; margin: 30px auto 0; }
     .faq details { border-bottom: 1px solid #22274c; padding: 16px 0; }
     .faq summary { color: #fff; font-size: 16px; } .faq p { color: #b9bedf; line-height: 1.6; margin: 10px 0 0; }
@@ -347,6 +361,9 @@ jobs:
 export class AccueilComponent {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  readonly paddle = inject(PaddleService);
+  readonly erreurPaiement = signal('');
 
   readonly marque = MARQUE;
   readonly workflow = WORKFLOW;
@@ -360,6 +377,29 @@ export class AccueilComponent {
   readonly envoi = signal(false);
   readonly erreur = signal('');
   readonly resultat = signal<RevueDetail | null>(null);
+
+  constructor() {
+    this.paddle.charger().subscribe();
+  }
+
+  /** « {q} revues / jour » → quota réel de l'offre (configuré côté serveur). */
+  point(x: string, code?: string): string {
+    return x.replace('{q}', this.paddle.quotas()[(code ?? 'GRATUIT') as Plan].toLocaleString(this.langue() === 'fr' ? 'fr-FR' : 'en-US'));
+  }
+
+  /** Passer à Pro / Équipe : inscription d'abord si besoin, puis paiement Paddle depuis Paramètres. */
+  souscrire(plan: Plan): void {
+    this.erreurPaiement.set('');
+    if (!this.auth.estConnecte()) {
+      this.router.navigate(['/inscription'], { queryParams: { offre: plan.toLowerCase() } });
+      return;
+    }
+    if (!this.auth.estDeveloppeur()) {
+      this.router.navigate(['/parametres']);
+      return;
+    }
+    this.paddle.ouvrirCheckout(plan).catch(() => this.erreurPaiement.set(this.t().paiementKo));
+  }
 
   basculerLangue(): void {
     this.langues.basculer();

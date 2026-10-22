@@ -90,6 +90,12 @@ export const routes: Routes = [
       },
     ],
   },
+  {
+    path: 'legal/:doc',
+    title: 'Informations légales · RevIA',
+    loadComponent: () => import('./pages/legal/legal.component').then((m) => m.LegalComponent),
+  },
+  { path: 'legal', pathMatch: 'full', redirectTo: 'legal/cgu' },
   { path: 'tarifs', redirectTo: '' },
   { path: '**', redirectTo: '' },
 ];

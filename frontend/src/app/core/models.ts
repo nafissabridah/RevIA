@@ -15,6 +15,41 @@ export interface Utilisateur {
   bloque: boolean;
   creeLe: string;
   nbRevues: number | null;
+  /** Offre commerciale (mise à jour par les webhooks Paddle). */
+  plan?: Plan;
+  /** Vrai si l'administrateur a fixé un quota qui remplace celui de l'offre. */
+  quotaPersonnalise?: boolean;
+  abonnementStatut?: string | null;
+  abonnementFinPeriode?: string | null;
+}
+
+export type Plan = 'GRATUIT' | 'PRO' | 'EQUIPE';
+
+/** Configuration publique du paiement (le jeton client Paddle est public par conception). */
+export interface AbonnementConfig {
+  actif: boolean;
+  environnement: 'sandbox' | 'production';
+  clientToken: string;
+  prixPro: string;
+  prixEquipe: string;
+  portail: boolean;
+  quotas: Record<Plan, number>;
+}
+
+export interface Abonnement {
+  plan: Plan;
+  quotaOffre: number;
+  quotaJournalier: number | null;
+  quotaPersonnalise: boolean;
+  statut: string | null;
+  finPeriode: string | null;
+  abonnementEnCours: boolean;
+  portailDisponible: boolean;
+}
+
+export interface SuppressionCompte {
+  supprime: boolean;
+  avertissement: string | null;
 }
 
 export interface AuthResponse {

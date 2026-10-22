@@ -81,6 +81,11 @@ class AssistantApiTest {
                 .andExpect(jsonPath("$.criteres[1].statut").value("non_couvert"))
                 .andExpect(jsonPath("$.couverture").value(50))
                 .andExpect(jsonPath("$.fournisseur").value("demo"));
+        mvc.perform(post("/api/assistant/criteres").header("Authorization", jeton).header("X-RevIA-Langue", "en")
+                        .contentType(MediaType.APPLICATION_JSON).content(corps))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resume", containsString("Demo mode")))
+                .andExpect(jsonPath("$.criteres[1].testManquant", containsString("Add a test")));
         mvc.perform(post("/api/assistant/criteres").header("Authorization", jeton).contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("criteres", " ", "diff", "+x"))))
                 .andExpect(status().isBadRequest())

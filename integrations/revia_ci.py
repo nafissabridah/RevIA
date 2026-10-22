@@ -19,6 +19,9 @@ Environment variables:
   REVIA_COMMENT    "true" (default) posts / updates one summary comment on the pull / merge request:
                    GitHub needs GITHUB_TOKEN (permissions: pull-requests: write),
                    GitLab needs GITLAB_TOKEN (project access token with the "api" scope).
+  REVIA_INLINE     "true" (default) also posts each critical / major finding as an inline review comment on the
+                   changed line (one-click GitHub suggestion when the fix is a single line); never posted twice
+  REVIA_INLINE_MAX Maximum new inline comments per run (default 20)
 
   Acceptance criteria (does the PR do what the user story asks?):
   REVIA_AC         "auto" (default): read the criteria from REVIA_AC_FILE, else the PR / MR description;
@@ -36,6 +39,8 @@ Environment variables:
   REVIA_MUTANTS          Mutants injected per file to prove the tests catch bugs (default 8, 0 = skip)
   REVIA_MIN_MUTATION     Fail if a proven test file kills fewer mutants (%) than this (default 0 = report only)
   REVIA_PROVEN_MAX_FILES Source files handled per run (default 5)
+  REVIA_TIMEOUT          Seconds to wait for one AI answer (default 600; raise it for a local model on CPU)
+  REVIA_KEEP_REJECTED    "true" keeps tests that never went green in revia-rejected/ (with their output), to debug
 Exit code: 0 = gate passed, 1 = gate failed, 2 = configuration / server error.
 """
 import json
@@ -50,7 +55,9 @@ import urllib.request
 EXTENSIONS = {".java", ".py", ".js", ".jsx", ".ts", ".tsx", ".php", ".c", ".h", ".cpp", ".cc", ".hpp", ".cs",
               ".go", ".rb", ".kt", ".swift", ".rs", ".sql"}
 MAX_LINES = 2000
-VERSION = "revia-ci/1.3"
+VERSION = "revia-ci/1.4"
+# Seconds to wait for one AI answer (long test files on a slow / local model can take minutes)
+AI_TIMEOUT = int(os.environ.get("REVIA_TIMEOUT", "").strip() or "600")
 
 
 def env(name, default=None):
@@ -152,6 +159,108 @@ def upsert_comment(body):
     except (urllib.error.URLError, OSError, ValueError) as e:
         # The comment is a convenience: never fail the build because of it.
         print("::warning::RevIA could not publish the PR comment: %s" % e)
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Inline review comments: each finding on its own line of the PR / MR (only on lines the PR changed)
+# --------------------------------------------------------------------------------------------------------------
+HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", re.M)
+INLINE_SEVERITIES = {"critique", "majeure"}
+
+
+def changed_lines(path):
+    """New-side line numbers added or modified by the PR in this file (None when git cannot tell)."""
+    try:
+        out = git_diff(["-U0"], [path])
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    lines = set()
+    for m in HUNK.finditer(out):
+        start, count = int(m.group(1)), int(m.group(2) or 1)
+        lines.update(range(start, start + count))
+    return lines
+
+
+def inline_marker(path, line, title):
+    return "<!-- revia:%s:%s:%s -->" % (path, line, re.sub(r"\W+", "-", title.lower())[:60])
+
+
+def inline_body(path, source_lines, p):
+    sev = p.get("gravite", "")
+    title = p.get("titre", "")
+    owasp = " · %s" % p["owasp"] if p.get("owasp") else ""
+    body = ["%s **RevIA · %s** (%s%s)" % (SEVERITY_ICON.get(sev, "•"), title, sev, owasp), "",
+            (p.get("explication") or "").strip()]
+    fix = p.get("correction") or {}
+    before, after = (fix.get("codeAvant") or "").strip(), fix.get("codeApres") or ""
+    line = p.get("ligne", 1)
+    current = source_lines[line - 1].strip() if 0 < line <= len(source_lines) else None
+    if after.strip() and before and "\n" not in before and before == current:
+        # One-line fix on exactly this line: a GitHub suggestion the author applies in one click
+        indent = re.match(r"\s*", source_lines[line - 1]).group(0)
+        body += ["", "```suggestion", "\n".join(indent + l.lstrip() if i == 0 else l
+                                                for i, l in enumerate(after.rstrip().split("\n"))), "```"]
+    elif after.strip():
+        body += ["", "Suggested fix:", "```", after.rstrip(), "```"]
+    if fix.get("justification"):
+        body += ["", "_%s_" % fix["justification"].strip()]
+    body += ["", inline_marker(path, line, title)]
+    return "\n".join(body)
+
+
+def post_inline_comments(candidates):
+    """candidates: list of (path, source_lines, problem). Posts at most REVIA_INLINE_MAX new comments."""
+    if env("REVIA_INLINE", "true").lower() != "true" or not candidates:
+        return
+    limit = int(env("REVIA_INLINE_MAX", "20"))
+    picked = []
+    cache = {}
+    for path, source_lines, p in sorted(candidates, key=lambda c: SEVERITY_ORDER.get(c[2].get("gravite"), 9)):
+        if p.get("gravite") not in INLINE_SEVERITIES:
+            continue
+        if path not in cache:
+            cache[path] = changed_lines(path)
+        if cache[path] is not None and p.get("ligne", 1) not in cache[path]:
+            continue  # not a line of this PR: stays in the summary / SARIF only
+        picked.append((path, p.get("ligne", 1), inline_body(path, source_lines, p), inline_marker(
+            path, p.get("ligne", 1), p.get("titre", ""))))
+    if not picked:
+        return
+    try:
+        if env("GITHUB_TOKEN") and env("GITHUB_REPOSITORY") and env("GITHUB_EVENT_PATH"):
+            pr = github_event().get("pull_request") or {}
+            if not pr.get("number"):
+                return
+            api = "%s/repos/%s/pulls/%s" % (env("GITHUB_API_URL", "https://api.github.com"), env("GITHUB_REPOSITORY"),
+                                            pr["number"])
+            h = {"Authorization": "Bearer " + env("GITHUB_TOKEN"), "Accept": "application/vnd.github+json"}
+            existing = " ".join(c.get("body") or "" for c in http_json("GET", api + "/comments?per_page=100", h) or [])
+            new = [x for x in picked if x[3] not in existing][:limit]
+            if not new:
+                return
+            http_json("POST", api + "/reviews", h, {
+                "commit_id": (pr.get("head") or {}).get("sha"), "event": "COMMENT",
+                "body": "RevIA: %d issue(s) on lines changed by this pull request." % len(new),
+                "comments": [{"path": f, "line": l, "side": "RIGHT", "body": b} for f, l, b, _ in new]})
+            print("RevIA: %d inline comment(s) posted on pull request #%s." % (len(new), pr["number"]))
+        elif env("GITLAB_TOKEN") and env("CI_MERGE_REQUEST_IID") and env("CI_PROJECT_ID") \
+                and env("CI_MERGE_REQUEST_DIFF_BASE_SHA"):
+            api = "%s/projects/%s/merge_requests/%s/discussions" % (
+                env("CI_API_V4_URL", "https://gitlab.com/api/v4"), env("CI_PROJECT_ID"), env("CI_MERGE_REQUEST_IID"))
+            h = {"PRIVATE-TOKEN": env("GITLAB_TOKEN")}
+            existing = " ".join(n.get("body") or "" for d in http_json("GET", api + "?per_page=100", h) or []
+                                for n in d.get("notes", []))
+            new = [x for x in picked if x[3] not in existing][:limit]
+            for f, l, b, _ in new:
+                http_json("POST", api, h, {"body": b, "position": {
+                    "position_type": "text", "base_sha": env("CI_MERGE_REQUEST_DIFF_BASE_SHA"),
+                    "start_sha": env("CI_MERGE_REQUEST_DIFF_BASE_SHA"), "head_sha": env("CI_COMMIT_SHA"),
+                    "new_path": f, "new_line": l}})
+            if new:
+                print("RevIA: %d inline comment(s) posted on merge request !%s." % (len(new), env("CI_MERGE_REQUEST_IID")))
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        # Inline comments are a convenience: the summary, annotations and SARIF still carry every finding.
+        print("::warning::RevIA could not post inline comments: %s" % e)
 
 
 def md_escape(text):
@@ -263,6 +372,11 @@ MUTATIONS = [(r"==", "!="), (r"!=", "=="), (r" <= ", " < "), (r" >= ", " > "), (
              (r"&&", "||"), (r"\|\|", "&&"), (r"\band\b", "or"), (r"\bor\b", "and"), (r" \+ ", " - "), (r" - ", " + "),
              (r" \* ", " / "), (r"\bTrue\b", "False"), (r"\bFalse\b", "True"), (r"\btrue\b", "false"),
              (r"\bfalse\b", "true"), (r"\+= 1\b", "-= 1"), (r"\+\+", "--")]
+# "Green" runs that executed no test: unittest, pytest, Jest / Vitest, Maven Surefire, Go
+NO_TESTS_RAN = re.compile(r"(?im)^Ran 0 tests\b|no tests ran|No tests found|Tests run: 0,|\[no test files\]|"
+                          r"no tests to run|0 passing\b")
+# ...unless some tests did run elsewhere in the output (e.g. a multi-module Maven build)
+SOME_TESTS_RAN = re.compile(r"(?im)^Ran [1-9]\d* tests?\b|Tests run: [1-9]|\b[1-9]\d* passed\b|^ok\s+\S+\s+[\d.]+s$")
 COMMENT = re.compile(r"^\s*(#|//|/?\*|import\b|from\b|package\b|using\b|@)")
 
 
@@ -296,14 +410,22 @@ def run_tests(cmd_template, tpath, timeout=300):
     try:
         p = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                            errors="replace", timeout=timeout)
+        if p.returncode == 0 and NO_TESTS_RAN.search(p.stdout or "") and not SOME_TESTS_RAN.search(p.stdout or ""):
+            # A green run that executed nothing proves nothing (e.g. the AI returned the source instead of tests)
+            return False, (p.stdout or "") + "\nREVIA: no test was executed - the file must contain real test cases."
         return p.returncode == 0, p.stdout
     except subprocess.TimeoutExpired as e:
         return False, "TIMEOUT after %ss\n%s" % (timeout, (e.stdout or "")[-4000:] if isinstance(e.stdout, str) else "")
 
 
-def first_block(markdown):
-    m = CODE_BLOCK.search(markdown or "")
-    return m.group(1) if m else None
+def test_block(markdown, source):
+    """The code block holding the tests: never a copy of the source, preferably one that mentions tests."""
+    src = re.sub(r"\s+", "", source)
+    blocks = [b for b in CODE_BLOCK.findall(markdown or "") if re.sub(r"\s+", "", b) != src and b.strip()]
+    for b in blocks:
+        if re.search(r"(?i)\b(test|it\(|describe\(|assert|expect\()", b):
+            return b
+    return blocks[0] if blocks else None
 
 
 def likely_bugs(markdown):
@@ -341,7 +463,7 @@ def repair(base_url, token, path, code, tpath, tests, problem):
     text = "Code under test (%s):\n```\n%s\n```\n\nTest file (%s):\n```\n%s\n```\n\n%s" % (
         path, code, tpath, tests, problem)
     r = call("POST", base_url + "/api/assistant/outils/reparer-tests", token,
-             {"code": text, "langage": "auto"}, timeout=300)
+             {"code": text, "langage": "auto"}, timeout=AI_TIMEOUT)
     return r.get("contenu", "")
 
 
@@ -368,9 +490,10 @@ def prove_tests(base_url, token, files):
         try:
             ctx = "tested file: %s ; test file: %s ; command: %s" % (path, tpath, cmd)
             answer = call("POST", base_url + "/api/assistant/outils/tests", token,
-                          {"code": code, "langage": "auto", "cible": ctx[:500]}, timeout=300).get("contenu", "")
-            tests = first_block(answer)
-            bugs += likely_bugs(answer)
+                          {"code": code, "langage": "auto", "cible": ctx[:500]}, timeout=AI_TIMEOUT).get("contenu", "")
+            tests = test_block(answer, code)
+            # Bugs are only reported from repair rounds, i.e. backed by a test that really failed on this runner:
+            # a guess made while writing the tests is not evidence.
             for attempt in range(max_fix + 1):
                 if not tests:
                     break
@@ -383,14 +506,22 @@ def prove_tests(base_url, token, files):
                 print("RevIA: generated tests for %s fail, repair round %d/%d." % (path, attempt + 1, max_fix))
                 answer = repair(base_url, token, path, code, tpath, tests,
                                 "Execution output (`%s`, failed):\n```\n%s\n```" % (cmd, tail(out)))
-                tests = first_block(answer) or tests
+                tests = test_block(answer, code) or tests
                 bugs += likely_bugs(answer)
         except (urllib.error.URLError, OSError, ValueError) as e:
             print("::warning::RevIA proven tests for %s: %s" % (path, e))
         if not ok:
             # Never leave a red or unverified test in the repository.
             if tests is not None and os.path.isfile(tpath):
-                os.remove(tpath)
+                if env("REVIA_KEEP_REJECTED", "false").lower() == "true":
+                    # Debugging: keep the last attempt and its output outside the test tree
+                    os.makedirs("revia-rejected", exist_ok=True)
+                    base = os.path.join("revia-rejected", os.path.basename(tpath))
+                    os.replace(tpath, base)
+                    with open(base + ".log", "w", encoding="utf-8") as fh:
+                        fh.write(out)
+                else:
+                    os.remove(tpath)
             results.append((path, "-", "❌ rejected (could not make them pass)", "-", dedupe(bugs)))
             continue
 
@@ -401,7 +532,7 @@ def prove_tests(base_url, token, files):
                 desc = "\n".join("- line %d: `%s` -> `%s`" % (i + 1, a.strip(), b.strip()) for i, a, b in survivors)
                 answer = repair(base_url, token, path, code, tpath, tests,
                                 "The tests pass, but these surviving mutants were NOT detected:\n" + desc)
-                better = first_block(answer)
+                better = test_block(answer, code)
                 if better:
                     with open(tpath, "w", encoding="utf-8") as fh:
                         fh.write(better + "\n")
@@ -409,12 +540,16 @@ def prove_tests(base_url, token, files):
                     s2, surv2 = mutation_score(path, code, cmd, tpath, n_mut) if green else (-1, survivors)
                     if green and s2 > score:
                         tests, score, survivors = better, s2, surv2
-                        bugs += likely_bugs(answer)
                     else:
                         with open(tpath, "w", encoding="utf-8") as fh:
                             fh.write(tests + "\n")
             except (urllib.error.URLError, OSError, ValueError) as e:
                 print("::warning::RevIA mutation round for %s: %s" % (path, e))
+        if score == 0:
+            # Green but blind: not one injected bug was caught, so these tests prove nothing. Not delivered.
+            os.remove(tpath)
+            results.append((path, "-", "❌ rejected (green but caught 0 injected bugs)", "0%", dedupe(bugs)))
+            continue
         bad = score >= 0 and score < min_mut
         failed = failed or bad
         results.append((path, tpath, "❌ weak tests" if bad else "✅ proven (green)",
@@ -429,7 +564,9 @@ def prove_tests(base_url, token, files):
         lines.append("| `%s` | %s | %s | %s |" % (src, "`%s`" % tp if tp != "-" else "-", status, score))
         all_bugs += ["`%s`: %s" % (src, md_escape(b)) for b in bugs]
     if all_bugs:
-        lines += ["", "### 🐞 Bugs found while testing", ""] + ["- " + b for b in all_bugs[:10]]
+        lines += ["", "### 🐞 Possible bugs revealed by failing tests (to confirm)", "",
+                  "RevIA's tests failed on these points and the AI attributes the failure to the code, not to the test:", ""] \
+            + ["- " + b for b in all_bugs[:10]]
     lines += ["", "<sub>Commit the generated files to keep them (e.g. upload them as a build artifact).</sub>"]
     return "\n".join(lines), failed
 
@@ -486,7 +623,7 @@ def main():
     if not files:
         print("RevIA: no reviewable source file changed.")
 
-    rows, runs, findings, failed = [], [], [], False
+    rows, runs, findings, failed, inline = [], [], [], False, []
     for path in files:
         with open(path, encoding="utf-8", errors="replace") as fh:
             code = fh.read()
@@ -519,10 +656,12 @@ def main():
             msg = (p.get("titre", "") + ": " + p.get("explication", "")).replace("\n", " ")
             print("::%s file=%s,line=%s,title=RevIA %s::%s" % (level, path, p.get("ligne", 1), p.get("gravite"), msg))
             findings.append((p.get("gravite"), path, p.get("ligne", 1), p.get("titre", ""), bool(p.get("correction"))))
+            inline.append((path, code.splitlines(), p))
 
     with open(env("REVIA_SARIF", "revia.sarif"), "w", encoding="utf-8") as fh:
         json.dump({"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0", "runs": runs}, fh, indent=2)
 
+    post_inline_comments(inline)
     sections = [summary_markdown(rows, findings, min_score, fail_critical, failed)] if files else []
     ac_md, ac_failed = check_acceptance_criteria(base_url, token)
     if ac_md:

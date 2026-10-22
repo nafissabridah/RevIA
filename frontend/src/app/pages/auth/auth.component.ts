@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
 import { TPipe } from '../../core/i18n';
+import { PaddleService } from '../../core/paddle.service';
 
 /** S'authentifier / S'inscrire (cas d'utilisation « S'inscrire » étend « S'authentifier »). */
 @Component({
@@ -35,7 +36,12 @@ import { TPipe } from '../../core/i18n';
       <section class="formulaire">
         <form class="carte boite" [formGroup]="form" (ngSubmit)="valider()" novalidate>
           <h2>{{ inscription() ? ('Créer un compte' | t) : ('Connexion' | t) }}</h2>
-          <p class="aide">{{ inscription() ? ('Gratuit · 50 revues par jour' | t) : ('Heureux de vous revoir 👋' | t) }}</p>
+          <p class="aide">
+            @if (inscription()) {
+              @if (offre()) { {{ 'Créez votre compte, puis finalisez le paiement.' | t }} }
+              @else { {{ 'Gratuit ·' | t }} {{ paddle.quotas().GRATUIT }} {{ 'revues par jour' | t }} }
+            } @else { {{ 'Heureux de vous revoir 👋' | t }} }
+          </p>
 
           @if (inscription()) {
             <div class="champ">
@@ -58,6 +64,13 @@ import { TPipe } from '../../core/i18n';
             }
           </div>
 
+          @if (inscription()) {
+            <p class="consentement">
+              {{ 'En créant un compte, vous acceptez les' | t }} <a routerLink="/legal/cgu" target="_blank">{{ 'CGU' | t }}</a>
+              {{ 'et la' | t }} <a routerLink="/legal/confidentialite" target="_blank">{{ 'politique de confidentialité' | t }}</a>.
+            </p>
+          }
+
           @if (erreur()) { <div class="message-erreur" role="alert">{{ erreur() | t }}</div> }
 
           <button class="btn primaire large" type="submit" [disabled]="envoi()">
@@ -67,9 +80,9 @@ import { TPipe } from '../../core/i18n';
 
           <p class="bascule">
             @if (inscription()) {
-              {{ 'Déjà un compte ?' | t }} <a routerLink="/connexion">{{ 'Se connecter' | t }}</a>
+              {{ 'Déjà un compte ?' | t }} <a routerLink="/connexion" [queryParams]="offre() ? { offre: offre() } : {}">{{ 'Se connecter' | t }}</a>
             } @else {
-              {{ 'Pas encore de compte ?' | t }} <a routerLink="/inscription">{{ 'S\\'inscrire' | t }}</a>
+              {{ 'Pas encore de compte ?' | t }} <a routerLink="/inscription" [queryParams]="offre() ? { offre: offre() } : {}">{{ 'S\\'inscrire' | t }}</a>
             }
           </p>
         </form>
@@ -107,6 +120,7 @@ import { TPipe } from '../../core/i18n';
     .formulaire { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px; }
     .boite { width: 100%; max-width: 400px; padding: 30px; color: var(--texte); display: flex; flex-direction: column; gap: 14px; }
     h2 { font-size: 22px; }
+    .consentement { font-size: 12.5px; color: var(--texte-3, #6b7090); margin: 0; }
     .aide { margin: -8px 0 4px; color: var(--texte-2); font-size: 13px; }
     .large { height: 40px; width: 100%; margin-top: 4px; }
     .message-erreur { background: var(--critique-pale); color: var(--critique); border-radius: 9px; padding: 10px 12px; font-size: 13px; }
@@ -125,6 +139,9 @@ export class AuthComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  readonly paddle = inject(PaddleService);
+  /** Offre choisie sur la page d'accueil (« pro » / « equipe ») : paiement proposé juste après. */
+  readonly offre = signal<string | null>(null);
 
   readonly inscription = signal(false);
   readonly envoi = signal(false);
@@ -139,6 +156,9 @@ export class AuthComponent implements OnInit {
 
   ngOnInit(): void {
     const ins = this.route.snapshot.data['mode'] === 'inscription';
+    const offre = this.route.snapshot.queryParamMap.get('offre');
+    this.offre.set(offre === 'pro' || offre === 'equipe' ? offre : null);
+    this.paddle.charger().subscribe();
     this.inscription.set(ins);
     if (ins) {
       this.form.controls.nom.setValidators([Validators.required, Validators.minLength(2), Validators.maxLength(80)]);
@@ -164,7 +184,16 @@ export class AuthComponent implements OnInit {
     this.envoi.set(true);
     const appel = this.inscription() ? this.auth.inscription(nom.trim(), email.trim(), motDePasse) : this.auth.connexion(email.trim(), motDePasse);
     appel.subscribe({
-      next: (r) => this.router.navigate([r.utilisateur.role === 'ADMIN' ? '/admin' : '/revues/nouvelle']),
+      next: (r) => {
+        if (r.utilisateur.role === 'ADMIN') {
+          this.router.navigate(['/admin']);
+        } else if (this.offre()) {
+          // Paramètres › Abonnement ouvre le paiement Paddle de l'offre choisie
+          this.router.navigate(['/parametres'], { queryParams: { offre: this.offre() } });
+        } else {
+          this.router.navigate(['/revues/nouvelle']);
+        }
+      },
       error: (e) => {
         this.erreur.set(messageErreur(e));
         this.envoi.set(false);

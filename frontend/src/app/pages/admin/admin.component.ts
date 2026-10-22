@@ -44,7 +44,11 @@ import { TPipe } from '../../core/i18n';
                       <div class="quota">
                         <input class="input" type="number" min="0" max="10000" [(ngModel)]="quotas[u.id]" [attr.aria-label]="('Quota de ' | t) + u.nom" />
                         <button class="btn petit" type="button" (click)="definirQuota(u)" [disabled]="quotas[u.id] === u.quotaJournalier">{{ 'OK' | t }}</button>
+                        @if (u.quotaPersonnalise) {
+                          <button class="btn petit" type="button" (click)="reinitialiserQuota(u)" [title]="'Revenir au quota de l\\'offre' | t">↺</button>
+                        }
                       </div>
+                      <span class="mail">{{ u.plan ?? 'GRATUIT' }}@if (u.quotaPersonnalise) { · {{ 'quota personnalisé' | t }} }</span>
                     } @else { — }
                   </td>
                   <td>
@@ -146,6 +150,17 @@ export class AdminComponent implements OnInit {
     this.api.prompts().subscribe((ps) => {
       this.prompts.set(ps);
       this.promptVu.set(ps.find((p) => p.actif) ?? ps[0] ?? null);
+    });
+  }
+
+  /** Supprime la surcharge : l'utilisateur suit à nouveau le quota de son offre. */
+  reinitialiserQuota(u: Utilisateur): void {
+    this.api.reinitialiserQuota(u.id).subscribe({
+      next: (n) => {
+        this.notif.succes(`Quota de ${n.nom} : ${n.quotaJournalier} revues / jour.`);
+        this.remplacer(n);
+      },
+      error: (e) => this.notif.erreur(messageErreur(e)),
     });
   }
 

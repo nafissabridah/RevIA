@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  AssistantReponse, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
+  Abonnement, AbonnementConfig, AssistantReponse, SuppressionCompte, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
   TableauDeBord, Utilisateur,
 } from './models';
 
@@ -94,6 +94,27 @@ export class ApiService {
     return this.http.get<SystemeInfo>('/api/systeme/info');
   }
 
+  // ---------- abonnement (Paddle) et compte (RGPD)
+  abonnementConfig(): Observable<AbonnementConfig> {
+    return this.http.get<AbonnementConfig>('/api/abonnement/config');
+  }
+
+  abonnement(): Observable<Abonnement> {
+    return this.http.get<Abonnement>('/api/abonnement');
+  }
+
+  portail(): Observable<{ url: string; urlResiliation: string | null }> {
+    return this.http.post<{ url: string; urlResiliation: string | null }>('/api/abonnement/portail', {});
+  }
+
+  exporterCompte(): Observable<Blob> {
+    return this.http.get('/api/compte/export', { responseType: 'blob' });
+  }
+
+  supprimerCompte(motDePasse: string): Observable<SuppressionCompte> {
+    return this.http.delete<SuppressionCompte>('/api/compte', { body: { motDePasse } });
+  }
+
   // ---------- administration
   utilisateurs(): Observable<Utilisateur[]> {
     return this.http.get<Utilisateur[]>('/api/admin/utilisateurs');
@@ -101,6 +122,11 @@ export class ApiService {
 
   definirQuota(id: number, quota: number): Observable<Utilisateur> {
     return this.http.put<Utilisateur>(`/api/admin/utilisateurs/${id}/quota`, { quota });
+  }
+
+  /** Supprime la surcharge : le compte suit à nouveau le quota de son offre. */
+  reinitialiserQuota(id: number): Observable<Utilisateur> {
+    return this.http.delete<Utilisateur>(`/api/admin/utilisateurs/${id}/quota`);
   }
 
   bloquer(id: number, valeur: boolean): Observable<Utilisateur> {

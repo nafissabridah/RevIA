@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.4.0 – 2026-10-22
+### Added
+- **Plans and payment (Paddle Billing, merchant of record: VAT handled worldwide)**: Gratuit / Pro / Équipe with daily
+  review quotas (`REVIA_OFFRE_*`, defaults 20 / 200 / 1000), Paddle.js overlay checkout, signed webhook
+  `POST /api/paddle/webhook` (HMAC-SHA256, timestamp tolerance, idempotent), customer portal. Off until `PADDLE_*` is set:
+  pricing buttons then fall back to sign-up / contact. Admin quota override still wins; new "reset to plan" action.
+- **Legal pages** `/legal/cgu`, `/legal/confidentialite`, `/legal/mentions-legales`, `/legal/dpa` (FR/EN templates that
+  describe how RevIA really processes data, company values in `core/marque.ts` marked `À COMPLÉTER`, "to be validated by a
+  lawyer" banner until `valideParJuriste` is set).
+- **GDPR**: data export `GET /api/compte/export` and account deletion `DELETE /api/compte` (password required).
+- **Inline PR review comments** (GitHub and GitLab): each critical / major finding on its changed line, one-click GitHub
+  suggestion for one-line fixes, never posted twice (`REVIA_INLINE`, `REVIA_INLINE_MAX`).
+- CI: PostgreSQL job (Flyway + schema validation on the real database), unit tests of the CI script
+  (`integrations/test_revia_ci.py`), `permissions: contents: read`.
+### Changed
+- **Existing users' daily quota**: the old default of 50 becomes the plan quota (20 on Gratuit); only quotas an admin
+  changed are kept (migration V3).
+- Demo-mode criteria verdicts follow the user's language (English when the UI is in English).
+### Fixed (found by running proven tests with a real local LLM)
+- A green run that executed **no test** (e.g. the AI returned the source instead of tests) counted as proven; tests that
+  catch **no injected bug** (0 % mutation score) were delivered. Both are now rejected.
+- Copies of the source in the AI answer are skipped when picking the test file.
+- "Bugs found" listed guesses made while writing the tests: only failures observed on the runner are reported now,
+  marked "to confirm".
+- The HTTP read timeout to the LLM used the review timeout, cutting long tool answers; Ollama tool answers are capped at
+  4 096 tokens (small local models loop beyond). CI client timeout `REVIA_TIMEOUT` (600 s), `REVIA_KEEP_REJECTED` to debug.
+- Tests: backend 74 → 85, frontend 30 → 34, CI script 6.
+
 ## 1.3.0 – 2026-10-22
 ### Added: what no other AI review/QA tool does
 - **Proven tests** (`REVIA_PROVEN_TESTS=true` in `integrations/revia_ci.py`): for each changed source file, RevIA generates

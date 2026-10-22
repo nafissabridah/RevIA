@@ -171,7 +171,9 @@ public class LlmConfig {
         log.info("RevIA : fournisseur {}, modèle {}, température {}, délai {} s", fournisseur, modele, ai.temperature(), ai.timeoutSec());
         OpenAiChatOptions texte = p.reflexionAssistant().isBlank() ? null
                 : OpenAiChatOptions.builder().reasoningEffort(p.reflexionAssistant()).build();
-        OpenAiChatOptions repli = OpenAiChatOptions.builder().maxTokens(ai.maxTokensOutils()).build();
+        // Petit modèle local (Ollama sur CPU) : au-delà de 4 096 jetons il boucle souvent et bloque l'outil plusieurs minutes
+        int jetonsOutils = "ollama".equals(fournisseur) ? Math.min(ai.maxTokensOutils(), 4096) : ai.maxTokensOutils();
+        OpenAiChatOptions repli = OpenAiChatOptions.builder().maxTokens(jetonsOutils).build();
         if (!modeleChoisi.isBlank() || p.modeleOutils().isBlank()) {
             return new SpringAiLlmClient(fournisseur, modele, model, json, texte, repli);
         }
@@ -204,11 +206,14 @@ public class LlmConfig {
                 AnthropicChatOptions.builder().maxTokens(ai.maxTokensOutils()).build());
     }
 
-    /** Délais HTTP : connexion 5 s, lecture = délai max d'analyse. */
+    /**
+     * Délais HTTP : connexion 5 s, lecture = le plus long des délais (les outils IA écrivent plus longtemps que la revue ;
+     * chaque appel garde son propre délai maximal dans AnalyseurIA.executer / AssistantIA.diffuser).
+     */
     private static RestClient.Builder restClient(ReviaProperties.Ai ai) {
         HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http);
-        factory.setReadTimeout(Duration.ofSeconds(ai.timeoutSec()));
+        factory.setReadTimeout(Duration.ofSeconds(Math.max(ai.timeoutSec(), ai.timeoutOutilsSec())));
         return RestClient.builder().requestFactory(factory);
     }
 

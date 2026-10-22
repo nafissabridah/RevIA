@@ -1,0 +1,64 @@
+"""Tests of revia_ci.py helpers (standard library only): python -m unittest integrations/test_revia_ci.py"""
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import revia_ci as ci  # noqa: E402
+
+
+class TestBlocks(unittest.TestCase):
+    SRC = "def f():\n    return 1\n"
+
+    def test_ignores_a_copy_of_the_source(self):
+        md = "```python\n%s```\nTests:\n```python\nimport unittest\nclass T(unittest.TestCase):\n" \
+             "    def test_f(self):\n        self.assertEqual(f(), 1)\n```" % self.SRC
+        self.assertIn("def test_f", ci.test_block(md, self.SRC))
+        self.assertIsNone(ci.test_block("```python\n%s```" % self.SRC, self.SRC))
+
+    def test_bugs_section(self):
+        md = "```python\nx\n```\n### Bugs probables détectés\n- ligne 3 : borne incluse\n- aucun\n"
+        self.assertEqual(ci.likely_bugs(md), ["ligne 3 : borne incluse"])
+
+
+class TestRuns(unittest.TestCase):
+    def ran_nothing(self, out):
+        return bool(ci.NO_TESTS_RAN.search(out)) and not ci.SOME_TESTS_RAN.search(out)
+
+    def test_green_run_without_tests_is_not_a_proof(self):
+        self.assertTrue(self.ran_nothing("Ran 0 tests in 0.000s\n\nOK"))
+        self.assertTrue(self.ran_nothing("no tests ran in 0.01s"))
+        self.assertFalse(self.ran_nothing("Ran 4 tests in 0.002s\n\nOK"))
+        self.assertFalse(self.ran_nothing("Tests run: 0, Failures: 0\nTests run: 6, Failures: 0"))
+
+
+class TestMutants(unittest.TestCase):
+    def test_spread_and_skip_strings_and_comments(self):
+        code = "# a == b\nx = 'a == b'\nif a == b:\n    y = c + d\nreturn True\n"
+        muts = ci.mutants(code, 10)
+        self.assertEqual([m[0] for m in muts], [2, 3, 4])
+        self.assertEqual(muts[0][2], "if a != b:")
+        self.assertEqual(muts[2][2], "return False")
+        self.assertEqual(ci.mutants(code, 0), [])
+
+
+class TestInline(unittest.TestCase):
+    def test_hunks_to_changed_lines(self):
+        diff = "@@ -1,0 +1,3 @@\n+a\n+b\n+c\n@@ -10 +12 @@\n-x\n+y\n"
+        lines = set()
+        for m in ci.HUNK.finditer(diff):
+            start, count = int(m.group(1)), int(m.group(2) or 1)
+            lines.update(range(start, start + count))
+        self.assertEqual(lines, {1, 2, 3, 12})
+
+    def test_one_line_fix_becomes_a_github_suggestion(self):
+        src = ["def f(total):", "    if total >= 100:", "        return 1"]
+        p = {"ligne": 2, "gravite": "critique", "titre": "Borne", "explication": "e",
+             "correction": {"codeAvant": "if total >= 100:", "codeApres": "if total > 100:"}}
+        body = ci.inline_body("a.py", src, p)
+        self.assertIn("```suggestion\n    if total > 100:\n```", body)
+        self.assertIn(ci.inline_marker("a.py", 2, "Borne"), body)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -457,7 +457,13 @@ Toutes les routes `/api/**` exigent `Authorization: Bearer <jwt>`, sauf mention 
 | `REVIA_JWT_SECRET` | aléatoire en dev, **obligatoire en prod** (≥ 32 caractères) | Signature des JWT |
 | `REVIA_JWT_MINUTES` | `120` | Durée de validité du jeton |
 | `REVIA_ADMIN_EMAIL` / `REVIA_ADMIN_PASSWORD` | `admin@revia.local` / `Admin2026!` en dev | Administrateur créé au premier démarrage |
-| `REVIA_QUOTA_JOUR` | `50` | Revues par jour (valeur par défaut des nouveaux comptes) |
+| `REVIA_OFFRE_GRATUIT` / `REVIA_OFFRE_PRO` / `REVIA_OFFRE_EQUIPE` | `20` / `200` / `1000` | Revues par jour selon l'offre (`REVIA_QUOTA_JOUR`, ancien nom, reste accepté pour l'offre gratuite). Un quota fixé par l'admin sur un compte l'emporte toujours ; l'admin peut le remettre au quota de l'offre |
+| `PADDLE_ENV` | `sandbox` | Paddle Billing : `sandbox` ou `production` |
+| `PADDLE_CLIENT_TOKEN` | *(vide = paiement désactivé)* | Jeton client **public** (`test_…` / `live_…`) envoyé au navigateur pour Paddle.js |
+| `PADDLE_WEBHOOK_SECRET` | *(vide = webhook désactivé)* | Secret de la destination de notification Paddle → `POST /api/paddle/webhook` (événements `subscription.*`, `customer.*`) |
+| `PADDLE_PRICE_PRO` / `PADDLE_PRICE_EQUIPE` | *(vide)* | Identifiants de prix Paddle (`pri_…`) |
+| `PADDLE_API_KEY` | *(vide)* | Facultatif, serveur uniquement : lien vers le portail client Paddle (gérer / résilier) |
+| `PADDLE_WEBHOOK_TOLERANCE` | `300` | Âge maximal (s) d'une signature de webhook (anti-rejeu) |
 | `REVIA_ANALYSES_MINUTE` / `REVIA_CONNEXIONS_MINUTE` | `10` / `10` | Limitation de débit Bucket4j |
 | `REVIA_CORS_ORIGINS` | `http://localhost:4200` | Origines autorisées (front séparé) |
 | `REVIA_DATA_DIR` | `./data` | Dossier de la base H2 (dev) |

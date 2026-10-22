@@ -288,8 +288,10 @@ public class VerificateurCriteres {
     /**
      * Mode démo : un critère est « couvert » si ses mots-clés apparaissent dans les lignes ajoutées du code
      * ET d'un fichier de test, « partiel » s'ils n'apparaissent que dans le code. Approximation sans IA.
+     * Textes en anglais si la consigne de langue du prompt système le demande, sinon en français.
      */
-    static String demo(String message) {
+    static String demo(String systeme, String message) {
+        boolean en = systeme.contains("the user reads ") && !systeme.contains("the user reads French");
         Map<String, String> criteres = new java.util.LinkedHashMap<>();
         Matcher m = CRITERE_MESSAGE.matcher(message);
         while (m.find()) {
@@ -326,19 +328,26 @@ public class VerificateurCriteres {
             ObjectNode n = liste.addObject();
             n.put("id", e.getKey());
             n.put("statut", statut);
-            n.put("explication", "Mode démo : " + dansCode + "/" + mots.size() + " mot(s)-clé(s) trouvés dans le code, "
+            n.put("explication", en
+                    ? "Demo mode: " + dansCode + "/" + mots.size() + " keyword(s) found in the code, "
+                    + dansTests + "/" + mots.size() + " in the tests."
+                    : "Mode démo : " + dansCode + "/" + mots.size() + " mot(s)-clé(s) trouvés dans le code, "
                     + dansTests + "/" + mots.size() + " dans les tests.");
             ArrayNode preuves = n.putArray("preuves");
             if (!"non_couvert".equals(statut)) {
-                preuves.add("diff — mots-clés : " + String.join(", ", mots.subList(0, Math.min(5, mots.size()))));
+                preuves.add((en ? "diff — keywords: " : "diff — mots-clés : ")
+                        + String.join(", ", mots.subList(0, Math.min(5, mots.size()))));
             }
             if (!teste) {
-                n.put("testManquant", "Ajouter un test qui vérifie : " + e.getValue());
+                n.put("testManquant", (en ? "Add a test that checks: " : "Ajouter un test qui vérifie : ") + e.getValue());
             } else {
                 n.putNull("testManquant");
             }
         }
-        rep.put("resume", "Mode démo (sans IA) : " + couverts + " critère(s) sur " + criteres.size()
+        rep.put("resume", en
+                ? "Demo mode (no AI): " + couverts + " of " + criteres.size()
+                + " criteria found in the code and the tests. Connect an LLM for a real verdict."
+                : "Mode démo (sans IA) : " + couverts + " critère(s) sur " + criteres.size()
                 + " retrouvé(s) dans le code et les tests. Branchez un LLM pour un vrai verdict.");
         return rep.toString();
     }

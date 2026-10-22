@@ -92,7 +92,8 @@ class ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.utilisateur.role").value("DEVELOPPEUR"))
-                .andExpect(jsonPath("$.utilisateur.quotaJournalier").value(50))
+                .andExpect(jsonPath("$.utilisateur.quotaJournalier").value(20))
+                .andExpect(jsonPath("$.utilisateur.plan").value("GRATUIT"))
                 .andExpect(jsonPath("$.utilisateur.motDePasseHash").doesNotExist());
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("nom", "Sarra A.", "email", email, "motDePasse", "Sarra2026!"))))

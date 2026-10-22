@@ -51,7 +51,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Fin d'une réponse diffusée (SSE) : la requête initiale a déjà été authentifiée
                         .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/systeme/info", "/api/essai").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/systeme/info", "/api/essai",
+                                "/api/abonnement/config").permitAll()
+                        // Webhook Paddle : pas de JWT, authentifié par sa signature HMAC (Paddle-Signature)
+                        .requestMatchers(HttpMethod.POST, "/api/paddle/webhook").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**", "/actuator/**").authenticated()

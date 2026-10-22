@@ -47,8 +47,7 @@ public class AuthService {
         if (utilisateurs.existsByEmailIgnoreCase(email)) {
             throw new ApiException(ErrorCode.EMAIL_DEJA_UTILISE);
         }
-        Developpeur d = utilisateurs.save(new Developpeur(req.nom().trim(), email, encoder.encode(req.motDePasse()),
-                props.quotas().revuesParJour()));
+        Developpeur d = utilisateurs.save(new Developpeur(req.nom().trim(), email, encoder.encode(req.motDePasse())));
         return reponse(d);
     }
 
