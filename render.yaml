@@ -40,6 +40,18 @@ services:
         value: https://revia.vercel.app
       - key: REVIA_IP_HEADER
         value: x-vercel-forwarded-for   # vraie IP du visiteur derrière la réécriture Vercel (limitation de débit)
+      - key: GITHUB_APP_ID
+        sync: false          # GitHub App (docs/GITHUB-APP.md) : désactivée tant que ces 4 valeurs sont vides
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false          # clé privée PEM de l'application (multiligne acceptée, ou \n littéraux)
+      - key: GITHUB_APP_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_APP_SLUG
+        sync: false          # https://github.com/apps/<slug>
+      - key: GITHUB_APP_CLIENT_ID
+        sync: false          # facultatif : vérification OAuth lors de la liaison d'une installation
+      - key: GITHUB_APP_CLIENT_SECRET
+        sync: false
 
 databases:
   - name: revia-db

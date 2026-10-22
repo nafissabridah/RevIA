@@ -30,6 +30,6 @@ public class SystemeController {
         return new Dtos.SystemeInfo("RevIA", version, analyseur.getFournisseur(), analyseur.getModele(),
                 analyseur.isDisponible(), analyseur.getTemperature(), analyseur.getTimeoutSec(),
                 props.offres().gratuit(), props.ai().maxLines(), props.essai().actif(), props.essai().maxLignes(),
-                analyseur.getChaine());
+                analyseur.getChaine(), props.githubApp().actif(), props.githubApp().urlInstallation());
     }
 }

@@ -60,7 +60,7 @@ info:
   version: ${revia.version}
 
 revia:
-  version: 1.6.0
+  version: 1.7.0
   ai:
     # gemini | groq | openrouter | mistral | ollama (gratuits) · openai | anthropic (payants) · demo (règles locales, sans clé)
     provider: ${REVIA_AI_PROVIDER:demo}
@@ -123,6 +123,21 @@ revia:
     price-equipe: ${PADDLE_PRICE_EQUIPE:}          # pri_…
     api-key: ${PADDLE_API_KEY:}                    # facultatif, serveur uniquement (portail client / résiliation)
     tolerance-sec: ${PADDLE_WEBHOOK_TOLERANCE:300}
+  # GitHub App « installer RevIA en un clic » (voir docs/GITHUB-APP.md). Désactivée tant que GITHUB_APP_ID,
+  # GITHUB_APP_PRIVATE_KEY, GITHUB_APP_WEBHOOK_SECRET et GITHUB_APP_SLUG ne sont pas tous renseignés.
+  github-app:
+    app-id: ${GITHUB_APP_ID:}
+    private-key: ${GITHUB_APP_PRIVATE_KEY:}          # PEM (PKCS#1 ou PKCS#8), « \n » littéraux acceptés
+    webhook-secret: ${GITHUB_APP_WEBHOOK_SECRET:}
+    slug: ${GITHUB_APP_SLUG:}                        # https://github.com/apps/<slug>
+    api-url: ${GITHUB_API_URL:https://api.github.com}
+    web-url: ${GITHUB_WEB_URL:https://github.com}
+    client-id: ${GITHUB_APP_CLIENT_ID:}              # facultatif : vérifie par OAuth l'accès de l'utilisateur à l'installation
+    client-secret: ${GITHUB_APP_CLIENT_SECRET:}
+    langue: ${GITHUB_APP_LANGUE:en}                  # langue des commentaires publiés sur les pull requests
+    metier: ${GITHUB_APP_METIER:}                    # pack métier facultatif (banque-paiement, sante…)
+    max-fichiers: ${GITHUB_APP_MAX_FICHIERS:20}
+    max-inline: ${GITHUB_APP_MAX_INLINE:20}
   admin:
     email: ${REVIA_ADMIN_EMAIL:admin@revia.local}
     password: ${REVIA_ADMIN_PASSWORD:}

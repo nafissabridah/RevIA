@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /** Objets échangés en JSON avec le front-end Angular (requêtes validées par Bean Validation). */
@@ -216,7 +217,23 @@ public final class Dtos {
 
     public record SystemeInfo(String application, String version, String fournisseur, String modele, boolean disponible,
                               double temperature, int timeoutSec, int quotaParDefaut, int maxLignes,
-                              boolean essaiActif, int essaiMaxLignes, List<String> chaine) {
+                              boolean essaiActif, int essaiMaxLignes, List<String> chaine,
+                              boolean githubActif, String githubInstallUrl) {
+    }
+
+    // ---------- GitHub App (installer RevIA sur un dépôt en un clic)
+
+    /** Installation GitHub reliée au compte : ses pull requests sont revues sur le quota de ce compte. */
+    public record InstallationGithubDto(long installationId, String compte, String typeCompte, LocalDateTime lieLe) {
+    }
+
+    /**
+     * Liaison après l'installation : GitHub redirige vers {@code /github/installe?installation_id=…[&code=…]}.
+     * {@code code} (OAuth) n'est utilisé que si GITHUB_APP_CLIENT_ID / GITHUB_APP_CLIENT_SECRET sont configurés.
+     */
+    public record LiaisonGithubRequest(
+            @NotNull(message = "Installation GitHub manquante.") @Positive(message = "Installation GitHub manquante.") Long installationId,
+            @Size(max = 200) String code) {
     }
 
     // ---------- Abonnement (Paddle Billing) et compte (RGPD)
@@ -246,7 +263,7 @@ public final class Dtos {
     /** Export RGPD (droit d'accès / portabilité) : jamais de hash de mot de passe ni d'empreinte de jeton. */
     public record ExportCompte(LocalDateTime genereLe, String application, UtilisateurDto compte,
                                AbonnementDto abonnement, List<JetonDto> jetonsApi, List<RevueDetail> revues,
-                               List<ProjetDetail> projets) {
+                               List<ProjetDetail> projets, List<InstallationGithubDto> installationsGithub) {
     }
 
     // ---------- Intégrations (CI, API, essai public)

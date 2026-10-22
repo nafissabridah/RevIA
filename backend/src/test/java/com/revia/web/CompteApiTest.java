@@ -63,6 +63,7 @@ class CompteApiTest {
                 .andExpect(jsonPath("$.jetonsApi[0].nom").value("CI"))
                 .andExpect(jsonPath("$.revues[0].code").exists())
                 .andExpect(jsonPath("$.revues[0].problemes[0].titre").exists())
+                .andExpect(jsonPath("$.installationsGithub").isArray())
                 .andReturn().getResponse().getContentAsString();
         assertThat(rep).doesNotContain("motDePasse").doesNotContain("$2a$").doesNotContain("empreinte")
                 .doesNotContain(jeton);

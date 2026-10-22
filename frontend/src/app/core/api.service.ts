@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  Abonnement, AbonnementConfig, AnalyseFlowchart, AssistantReponse, FlowchartRequete, Metier, SuppressionCompte, CouvertureCriteres, FiltresHistorique, JetonApi, MessageChat, OutilIA, Page, Probleme, ProjetDetail, ProjetResume, CritereProjet, VerdictQa, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
+  Abonnement, AbonnementConfig, AnalyseFlowchart, AssistantReponse, FlowchartRequete, Metier, SuppressionCompte, CouvertureCriteres, FiltresHistorique, InstallationGithub, JetonApi, MessageChat, OutilIA, Page, Probleme, ProjetDetail, ProjetResume, CritereProjet, VerdictQa, PromptSysteme, RevueDetail, RevueResume, SystemeInfo,
   TableauDeBord, Utilisateur,
 } from './models';
 
@@ -133,6 +133,20 @@ export class ApiService {
 
   sarif(id: number): Observable<Blob> {
     return this.http.get(`/api/revues/${id}/sarif`, { responseType: 'blob' });
+  }
+
+  // ---------- GitHub App (installer RevIA sur un dépôt en un clic)
+  installationsGithub(): Observable<InstallationGithub[]> {
+    return this.http.get<InstallationGithub[]>('/api/github/installations');
+  }
+
+  /** Relie l'installation reçue sur l'URL de configuration (code OAuth facultatif). */
+  lierGithub(installationId: number, code?: string | null): Observable<InstallationGithub> {
+    return this.http.post<InstallationGithub>('/api/github/installations', { installationId, code: code || null });
+  }
+
+  delierGithub(installationId: number): Observable<void> {
+    return this.http.delete<void>(`/api/github/installations/${installationId}`);
   }
 
   systeme(): Observable<SystemeInfo> {

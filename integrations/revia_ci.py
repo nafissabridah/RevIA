@@ -267,6 +267,12 @@ def md_escape(text):
     return "".join("\\" + ch if ch in "\\`*_[]<>|" else ch for ch in str(text)).replace("\n", " ")
 
 
+def md_escape_keep_code(text):
+    """Like md_escape, but `code spans` stay code spans (their content cannot inject markdown or HTML)."""
+    parts = re.split(r"(`[^`\n]+`)", str(text))
+    return "".join(p if p.startswith("`") and p.endswith("`") and len(p) > 2 else md_escape(p) for p in parts)
+
+
 def summary_markdown(rows, findings, min_score, fail_critical, failed):
     status = "❌ **Quality gate failed**" if failed else "✅ **Quality gate passed**"
     lines = ["## 🛡️ RevIA code review", "", status + " — score >= %d%s." % (
@@ -378,6 +384,12 @@ NO_TESTS_RAN = re.compile(r"(?im)^Ran 0 tests\b|no tests ran|No tests found|Test
 # ...unless some tests did run elsewhere in the output (e.g. a multi-module Maven build)
 SOME_TESTS_RAN = re.compile(r"(?im)^Ran [1-9]\d* tests?\b|Tests run: [1-9]|\b[1-9]\d* passed\b|^ok\s+\S+\s+[\d.]+s$")
 COMMENT = re.compile(r"^\s*(#|//|/?\*|import\b|from\b|package\b|using\b|@)")
+# Section where the AI lists the places where the code contradicts its own documentation, with a test of the doc
+DOC_SECTION = re.compile(r"(?im)^[ \t]*(?:#+[ \t]*|\*\*)[ \t]*(?:contradictions?\b|documentation[ \t]*(?:vs\.?|/)[ \t]*code)[^\n]*$")
+# A red documentation test is evidence only if an assertion failed, not if the test file itself is broken
+ASSERTION_FAILED = re.compile(r"AssertionError|assert\w*\(|Expected|expected|FAIL:|FAILED|--- FAIL|toBe|toEqual")
+BROKEN_TEST = re.compile(r"SyntaxError|IndentationError|ImportError|ModuleNotFoundError|NameError|Cannot find module|"
+                         r"compilation (?:error|failed)|undefined:")
 
 
 def test_path(src):
@@ -431,6 +443,62 @@ def test_block(markdown, source):
     return blocks[0] if blocks else None
 
 
+def split_doc_section(markdown):
+    """(tests part, documentation-contradictions part) of the AI answer."""
+    m = DOC_SECTION.search(markdown or "")
+    return (markdown, "") if not m else (markdown[:m.start()], markdown[m.start():])
+
+
+def doc_test_path(tpath):
+    if tpath.endswith("_test.go"):
+        return tpath[:-len("_test.go")] + "_doc_test.go"
+    if ".test." in os.path.basename(tpath):
+        return tpath.replace(".test.", ".doc.test.")
+    stem, ext = os.path.splitext(tpath)
+    return stem + "_doc" + ext
+
+
+def check_documentation(cmd, path, code, tpath, doc_md):
+    """Runs the AI's test of the DOCUMENTED behaviour. Returns [(claim, observed)] only when the runner confirmed it:
+    the doc test failed on an assertion. A green doc test means the AI was wrong; a broken one proves nothing.
+    The file is always deleted: a red test never stays in the repository."""
+    if not doc_md or path.endswith(".java"):  # Java: the class name must match the file name, not handled yet
+        return []
+    block = test_block(doc_md, code)
+    if not block:
+        return []
+    claims = [re.sub(r"^\s*[-*\d.)]+\s*", "", l).strip() for l in doc_md.split("```")[0].splitlines()[1:]]
+    claims = [c for c in claims if c and not re.match(r"(?i)^(aucun|aucune|none|n/a|-)\.?$", c)][:3]
+    if not claims:
+        return []
+    dpath = doc_test_path(tpath)
+    try:
+        os.makedirs(os.path.dirname(dpath) or ".", exist_ok=True)
+        with open(dpath, "w", encoding="utf-8") as fh:
+            fh.write(block + "\n")
+        ok, out = run_tests(cmd, dpath)
+    finally:
+        if os.path.isfile(dpath):
+            os.remove(dpath)
+    if ok or BROKEN_TEST.search(out or "") or not ASSERTION_FAILED.search(out or ""):
+        return []
+    observed = [l.strip() for l in (out or "").splitlines() if re.search(r"AssertionError|Expected|expected|--- FAIL", l)]
+    return [(locate(c, code), " / ".join(observed[:2])[:300]) for c in claims]
+
+
+def locate(claim, code):
+    """Line numbers given by the AI are often wrong (seen live: "line 18" for line 25): drop them and find the line
+    from the code the claim quotes, e.g. `total > 50`."""
+    text = re.sub(r"(?i)^\W*(?:lines?|ligne)s?\s*\d+\W*", "", claim.replace("**", "")).strip()
+    lines = code.split("\n")
+    for snippet in re.findall(r"`([^`\n]{3,})`", text):
+        hits = [i for i, l in enumerate(lines) if snippet.strip() in l and not COMMENT.match(l)
+                and '"""' not in l and "'''" not in l]
+        if hits:
+            return "line %d: %s" % (hits[0] + 1, text)
+    return text
+
+
 def likely_bugs(markdown):
     m = BUGS_SECTION.search(markdown or "")
     if not m:
@@ -475,7 +543,7 @@ def prove_tests(base_url, token, files):
     max_fix = int(env("REVIA_MAX_FIX", "3"))
     n_mut = int(env("REVIA_MUTANTS", "8"))
     min_mut = int(env("REVIA_MIN_MUTATION", "0"))
-    results, failed = [], False
+    results, failed, doc_findings = [], False, []
     candidates = [f for f in files if not TEST_HINT.search(f) and test_path(f)]
     for path in candidates[:int(env("REVIA_PROVEN_MAX_FILES", "5"))]:
         ext = os.path.splitext(path)[1].lower()
@@ -489,11 +557,12 @@ def prove_tests(base_url, token, files):
         if code.count("\n") > 300:
             results.append((path, "-", "⏭️ skipped (> 300 lines)", "-", []))
             continue
-        bugs, ok, out, tests = [], False, "", None
+        bugs, ok, out, tests, doc_md = [], False, "", None, ""
         try:
             ctx = "tested file: %s ; test file: %s ; command: %s" % (path, tpath, cmd)
             answer = call("POST", base_url + "/api/assistant/outils/tests", token,
                           {"code": code, "langage": "auto", "cible": ctx[:500]}, timeout=AI_TIMEOUT).get("contenu", "")
+            answer, doc_md = split_doc_section(answer)
             tests = test_block(answer, code)
             # Bugs are only reported from repair rounds, i.e. backed by a test that really failed on this runner:
             # a guess made while writing the tests is not evidence.
@@ -513,6 +582,10 @@ def prove_tests(base_url, token, files):
                 bugs += likely_bugs(answer)
         except (urllib.error.URLError, OSError, ValueError) as e:
             print("::warning::RevIA proven tests for %s: %s" % (path, e))
+        try:
+            doc_findings += [(path, c, o) for c, o in check_documentation(cmd, path, code, tpath, doc_md)]
+        except OSError as e:
+            print("::warning::RevIA documentation check for %s: %s" % (path, e))
         if not ok:
             # Never leave a red or unverified test in the repository.
             if tests is not None and os.path.isfile(tpath):
@@ -570,6 +643,12 @@ def prove_tests(base_url, token, files):
         lines += ["", "### 🐞 Possible bugs revealed by failing tests (to confirm)", "",
                   "RevIA's tests failed on these points and the AI attributes the failure to the code, not to the test:", ""] \
             + ["- " + b for b in all_bugs[:10]]
+    if doc_findings:
+        lines += ["", "### 📄 Code that contradicts its own documentation (observed on this runner, to confirm)", "",
+                  "RevIA wrote a test of what the documentation promises and it **failed on your code** "
+                  "(that test was then deleted):", ""] \
+            + ["- `%s`: %s%s" % (src, md_escape_keep_code(c), " — observed: `%s`" % o.replace("`", "'") if o else "")
+               for src, c, o in doc_findings[:10]]
     lines += ["", "<sub>Commit the generated files to keep them (e.g. upload them as a build artifact).</sub>"]
     return "\n".join(lines), failed
 

@@ -22,4 +22,18 @@ public class ExecutorConfig {
             return t;
         }, new ThreadPoolExecutor.AbortPolicy());
     }
+
+    /**
+     * Revues de pull requests reçues par la GitHub App : 2 revues en parallèle au plus, 50 en attente ;
+     * au-delà, le webhook répond 503 (la livraison peut être renvoyée depuis GitHub).
+     */
+    @Bean(name = "githubExecutor", destroyMethod = "shutdownNow")
+    public ExecutorService githubExecutor() {
+        AtomicInteger n = new AtomicInteger();
+        return new ThreadPoolExecutor(2, 2, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(50), r -> {
+            Thread t = new Thread(r, "revia-github-" + n.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        }, new ThreadPoolExecutor.AbortPolicy());
+    }
 }

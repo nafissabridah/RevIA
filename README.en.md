@@ -1,5 +1,9 @@
 # RevIA – AI code review and QA toolbox, with a CI quality gate
 
+**New in 1.7:** one-click install as a **GitHub App** (`docs/GITHUB-APP.md`); RevIA **proves on your CI** where the
+code contradicts its own documentation (a test of the documented behaviour really fails, then is deleted); public
+**/demo** page with a real run (free Gemini, 100 % mutation score).
+
 **New in 1.6 — project traceability:** paste user stories into a project, criteria are extracted automatically,
 checked against a PR diff (status, evidence, missing test) and signed off by QA; project coverage and a CSV
 traceability matrix (requirement → criterion → code → test → QA verdict). API: `/api/projets`.

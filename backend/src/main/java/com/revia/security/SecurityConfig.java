@@ -55,6 +55,8 @@ public class SecurityConfig {
                                 "/api/abonnement/config").permitAll()
                         // Webhook Paddle : pas de JWT, authentifié par sa signature HMAC (Paddle-Signature)
                         .requestMatchers(HttpMethod.POST, "/api/paddle/webhook").permitAll()
+                        // Webhook GitHub App : pas de JWT, authentifié par sa signature HMAC (X-Hub-Signature-256)
+                        .requestMatchers(HttpMethod.POST, "/api/github/webhook").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**", "/actuator/**").authenticated()

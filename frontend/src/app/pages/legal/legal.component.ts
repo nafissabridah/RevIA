@@ -27,8 +27,7 @@ import { DOCS_LEGAUX, DocLegal, SOUS_TRAITANTS, documentLegal } from './contenu-
 
       @if (!valide) {
         <div class="bandeau" role="note">
-          ⚠️ {{ 'Modèle à faire valider par un juriste' | t }} —
-          {{ "les informations marquées « À COMPLÉTER » doivent être renseignées avant la mise en ligne." | t }}
+          ⚠️ {{ 'Modèle à faire valider par un juriste' | t }}
         </div>
       }
 

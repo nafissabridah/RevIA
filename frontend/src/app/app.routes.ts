@@ -113,7 +113,18 @@ export const routes: Routes = [
     title: 'Informations légales · RevIA',
     loadComponent: () => import('./pages/legal/legal.component').then((m) => m.LegalComponent),
   },
+  {
+    // URL de configuration de la GitHub App : relie l'installation au compte (connexion demandée si besoin)
+    path: 'github/installe',
+    title: 'GitHub · RevIA',
+    loadComponent: () => import('./pages/github/github-installe.component').then((m) => m.GithubInstalleComponent),
+  },
   { path: 'legal', pathMatch: 'full', redirectTo: 'legal/cgu' },
+  {
+    path: 'demo',
+    title: 'Démo : des tests qui prouvent qu’ils marchent · RevIA',
+    loadComponent: () => import('./pages/demo/demo.component').then((m) => m.DemoComponent),
+  },
   { path: 'tarifs', redirectTo: '' },
   { path: '**', redirectTo: '' },
 ];

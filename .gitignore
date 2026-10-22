@@ -12,3 +12,7 @@ frontend/.angular/
 .idea/
 .vscode/
 *.iml
+
+# Python
+__pycache__/
+*.pyc

@@ -14,6 +14,7 @@ import com.revia.domain.Developpeur;
 import com.revia.domain.Utilisateur;
 import com.revia.error.ApiException;
 import com.revia.error.ErrorCode;
+import com.revia.repository.InstallationGithubRepository;
 import com.revia.repository.RevueRepository;
 import com.revia.repository.UtilisateurRepository;
 import com.revia.service.paddle.PaddleService;
@@ -35,9 +36,12 @@ public class CompteService {
     private final QuotaService quotas;
     private final PaddleService paddle;
     private final PasswordEncoder encoder;
+    private final InstallationGithubRepository installations;
 
     public CompteService(UtilisateurRepository utilisateurs, RevueRepository revues, JetonApiService jetons,
-                         ProjetService projets, QuotaService quotas, PaddleService paddle, PasswordEncoder encoder) {
+                         ProjetService projets, QuotaService quotas, PaddleService paddle, PasswordEncoder encoder,
+                         InstallationGithubRepository installations) {
+        this.installations = installations;
         this.utilisateurs = utilisateurs;
         this.revues = revues;
         this.jetons = jetons;
@@ -56,7 +60,11 @@ public class CompteService {
         List<Dtos.RevueDetail> detail = revues.findByAuteurIdOrderByCreeLeAsc(userId).stream()
                 .map(r -> Mapper.detail(r, p -> 0L)).toList();
         return new Dtos.ExportCompte(LocalDateTime.now(), "RevIA", Mapper.utilisateur(u, (long) detail.size()),
-                paddle.dto(u), jetons.lister(userId), detail, projets.exporter(userId));
+                paddle.dto(u), jetons.lister(userId), detail, projets.exporter(userId),
+                installations.findByUtilisateurIdOrderByLieLeDesc(userId).stream()
+                        .map(i -> new Dtos.InstallationGithubDto(i.getInstallationId(), i.getCompte(), i.getTypeCompte(),
+                                i.getLieLe()))
+                        .toList());
     }
 
     /**

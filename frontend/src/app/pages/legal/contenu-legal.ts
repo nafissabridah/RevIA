@@ -65,10 +65,17 @@ export const SOUS_TRAITANTS: SousTraitant[] = [
     lieu: { fr: 'Royaume-Uni / monde', en: 'United Kingdom / worldwide' },
   },
   {
-    nom: '[À COMPLÉTER : hébergeur de l\'application et de la base de données]',
-    role: { fr: 'Hébergement de l\'API, de l\'interface et de la base PostgreSQL', en: 'Hosting of the API, the web app and the PostgreSQL database' },
+    nom: 'Render Services, Inc.',
+    role: { fr: 'Hébergement de l\'API et de la base PostgreSQL', en: 'Hosting of the API and the PostgreSQL database' },
     donnees: { fr: 'Toutes les données du compte', en: 'All account data' },
-    lieu: { fr: '[À COMPLÉTER]', en: '[TO BE COMPLETED]' },
+    // Région par défaut de render.yaml (Oregon) : à modifier si le service est créé dans une autre région
+    lieu: { fr: 'États-Unis (Oregon)', en: 'United States (Oregon)' },
+  },
+  {
+    nom: 'Vercel Inc.',
+    role: { fr: 'Hébergement de l\'interface web (fichiers statiques) et relais vers l\'API', en: 'Hosting of the web app (static files) and proxy to the API' },
+    donnees: { fr: 'Adresse IP et requêtes transmises à l\'API', en: 'IP address and requests forwarded to the API' },
+    lieu: { fr: 'États-Unis / réseau mondial', en: 'United States / global network' },
   },
 ];
 

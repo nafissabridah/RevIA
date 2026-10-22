@@ -27,6 +27,9 @@ public enum ErrorCode {
             "Ce fournisseur d'IA ne sait pas lire les images : collez plutôt le diagramme en Mermaid, BPMN ou draw.io."),
     WEBHOOK_SIGNATURE(HttpStatus.UNAUTHORIZED, "Signature de webhook invalide."),
     PAIEMENT_INDISPONIBLE(HttpStatus.SERVICE_UNAVAILABLE, "Le service de paiement est momentanément indisponible. Réessayez plus tard."),
+    GITHUB_INDISPONIBLE(HttpStatus.BAD_GATEWAY, "GitHub est momentanément injoignable. Réessayez dans un instant."),
+    GITHUB_DEJA_LIEE(HttpStatus.CONFLICT, "Cette installation GitHub est déjà reliée à un autre compte RevIA."),
+    GITHUB_SATURE(HttpStatus.SERVICE_UNAVAILABLE, "Trop de pull requests en attente de revue. Réessayez plus tard."),
     INTERNE(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur inattendue s'est produite. Réessayez plus tard.");
 
     private final HttpStatus status;

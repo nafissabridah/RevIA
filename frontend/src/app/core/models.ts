@@ -169,6 +169,18 @@ export interface SystemeInfo {
   timeoutSec: number;
   quotaParDefaut: number;
   maxLignes: number;
+  /** GitHub App configurée sur le serveur (installation en un clic). */
+  githubActif?: boolean;
+  /** https://github.com/apps/{slug}/installations/new */
+  githubInstallUrl?: string;
+}
+
+/** Installation de la GitHub App reliée au compte : ses pull requests sont revues sur le quota du compte. */
+export interface InstallationGithub {
+  installationId: number;
+  compte: string;
+  typeCompte: string | null;
+  lieLe: string;
 }
 
 export interface PromptSysteme {

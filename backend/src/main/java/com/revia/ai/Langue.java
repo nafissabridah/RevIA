@@ -2,6 +2,7 @@ package com.revia.ai;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -24,11 +25,33 @@ public final class Langue {
             Map.entry("ar", "Arabic"), Map.entry("ru", "Russian"), Map.entry("hi", "Hindi"),
             Map.entry("zh", "Simplified Chinese"), Map.entry("ja", "Japanese"), Map.entry("ko", "Korean"));
 
+    /** Langue imposée au fil courant hors requête HTTP (ex. revue d'une pull request par la GitHub App). */
+    private static final ThreadLocal<String> IMPOSEE = new ThreadLocal<>();
+
     private Langue() {
+    }
+
+    /** Exécute {@code action} avec la langue {@code code} sur ce fil (traitements asynchrones, sans requête HTTP). */
+    public static <T> T avec(String code, Supplier<T> action) {
+        String avant = IMPOSEE.get();
+        IMPOSEE.set(normaliser(code));
+        try {
+            return action.get();
+        } finally {
+            if (avant == null) {
+                IMPOSEE.remove();
+            } else {
+                IMPOSEE.set(avant);
+            }
+        }
     }
 
     /** Code de langue (« fr », « en », « ar »…) pour la requête HTTP en cours (« fr » hors requête ou inconnu). */
     public static String courante() {
+        String imposee = IMPOSEE.get();
+        if (imposee != null) {
+            return imposee;
+        }
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         if (!(attrs instanceof ServletRequestAttributes s)) {
             return "fr";

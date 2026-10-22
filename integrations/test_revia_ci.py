@@ -63,6 +63,52 @@ class TestMutants(unittest.TestCase):
             shutil.rmtree(d, ignore_errors=True)
 
 
+class TestDocumentation(unittest.TestCase):
+    """The code contradicts its doc only if RevIA's test of the DOCUMENTED behaviour really fails on the runner."""
+    SRC = ('def livraison(total):\n    """-5 EUR a partir de 50 EUR d\'achat."""\n'
+           '    return total - 5 if total > 50 else total\n')
+
+    def run_doc(self, assertion):
+        import shutil
+        import tempfile
+        d = tempfile.mkdtemp()
+        old = os.getcwd()
+        try:
+            os.chdir(d)
+            with open("panier.py", "w") as fh:
+                fh.write(self.SRC)
+            answer = ("Tests.\n```python\nimport unittest\n```\n\n### Contradictions documentation / code\n"
+                      "- ligne 3 : la doc dit a partir de 50 (>= 50), le code fait > 50\n\n```python\n"
+                      "import unittest\nfrom panier import livraison\n\n\nclass T(unittest.TestCase):\n"
+                      "    def test_doc(self):\n        %s\n```\n" % assertion)
+            main, doc = ci.split_doc_section(answer)
+            self.assertNotIn("Contradictions", main)
+            cmd = '"%s" -m unittest {test}' % sys.executable
+            found = ci.check_documentation(cmd, "panier.py", self.SRC, "tests/test_revia_panier.py", doc)
+            self.assertFalse(os.path.exists("tests/test_revia_panier_doc.py"))  # never left behind
+            return found
+        finally:
+            os.chdir(old)
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_confirmed_when_the_doc_test_fails(self):
+        found = self.run_doc("self.assertEqual(livraison(50), 45)")
+        self.assertEqual(len(found), 1)
+        self.assertIn("a partir de 50", found[0][0])
+        self.assertIn("50 != 45", found[0][1])
+
+    def test_line_found_from_the_quoted_code_not_from_the_ai(self):
+        claim = "**Line 18**: the docstring says `a partir de 50`, but the code uses `total > 50`."
+        self.assertEqual(ci.locate(claim, self.SRC),
+                         "line 3: the docstring says `a partir de 50`, but the code uses `total > 50`.")
+        self.assertEqual(ci.locate("ligne 9 : rien de cité", self.SRC), "rien de cité")
+
+    def test_ai_wrong_or_broken_test_reports_nothing(self):
+        self.assertEqual(self.run_doc("self.assertEqual(livraison(60), 55)"), [])  # doc respected: AI was wrong
+        self.assertEqual(self.run_doc("self.assertEqual(livraisonn(50), 45)"), [])  # NameError: proves nothing
+        self.assertEqual(ci.check_documentation("x", "a.py", "", "tests/t.py", ""), [])
+
+
 class TestInline(unittest.TestCase):
     def test_hunks_to_changed_lines(self):
         diff = "@@ -1,0 +1,3 @@\n+a\n+b\n+c\n@@ -10 +12 @@\n-x\n+y\n"

@@ -24,7 +24,7 @@ const EXEMPLE = `public class UserService {
 
 const T = {
   fr: {
-    nav: ['Fonctionnalités', 'CI / Pull requests', 'Tarifs', 'FAQ'], connexion: 'Se connecter', essai: 'Essai gratuit',
+    nav: ['Fonctionnalités', 'CI / Pull requests', 'Tarifs', 'FAQ', 'Démo'], demo: 'Voir un vrai run : tests prouvés, 100 % de mutation →', connexion: 'Se connecter', essai: 'Essai gratuit',
     ouvrir: "Ouvrir l'application",
     badge: 'Revue de code IA · OWASP Top 10 · auto-hébergeable',
     titre1: 'Bloquez les failles', titre2: 'avant le merge.',
@@ -76,7 +76,7 @@ const T = {
     paiementKo: 'Le paiement n’a pas pu s’ouvrir. Réessayez ou écrivez-nous.',
   },
   en: {
-    nav: ['Features', 'CI / Pull requests', 'Pricing', 'FAQ'], connexion: 'Sign in', essai: 'Free trial',
+    nav: ['Features', 'CI / Pull requests', 'Pricing', 'FAQ', 'Demo'], demo: 'See a real run: proven tests, 100% mutation score →', connexion: 'Sign in', essai: 'Free trial',
     ouvrir: 'Open the app',
     badge: 'AI code review · OWASP Top 10 · self-hostable',
     titre1: 'Stop vulnerabilities', titre2: 'before the merge.',
@@ -155,7 +155,7 @@ jobs:
       <a class="logo" routerLink="/"><span class="carre">R</span>Rev<span class="ia">IA</span></a>
       <nav>
         <a href="#fonctionnalites">{{ t().nav[0] }}</a><a href="#ci">{{ t().nav[1] }}</a>
-        <a href="#tarifs">{{ t().nav[2] }}</a><a href="#faq">{{ t().nav[3] }}</a>
+        <a href="#tarifs">{{ t().nav[2] }}</a><a href="#faq">{{ t().nav[3] }}</a><a routerLink="/demo">{{ t().nav[4] }}</a>
       </nav>
       <div class="actions">
         <button class="langue" (click)="basculerLangue()" [attr.aria-label]="'Language'">{{ langue() === 'fr' ? 'EN' : 'FR' }}</button>
@@ -176,6 +176,7 @@ jobs:
         <a class="btn primaire grand" href="#essai">{{ t().cta1 }}</a>
         <a class="btn fantome grand" routerLink="/inscription">{{ t().cta2 }}</a>
       </div>
+      <a class="lien-demo" routerLink="/demo">{{ t().demo }}</a>
       <ul class="preuves">@for (p of t().preuves; track p) { <li>✓ {{ p }}</li> }</ul>
     </section>
 
@@ -295,6 +296,8 @@ jobs:
     h1 span { background: linear-gradient(90deg, #a5b4fc, #c084fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .sous { max-width: 720px; margin: 0 auto; color: #b9bedf; font-size: 18px; line-height: 1.6; }
     .ctas { display: flex; gap: 12px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+    .lien-demo { display: inline-block; margin-top: 18px; color: var(--accent-ia); font-weight: 600; font-size: 14.5px; }
+    .lien-demo:hover { color: #fff; }
     .preuves { list-style: none; padding: 0; margin: 30px 0 0; display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; color: #9aa0c8; font-size: 13.5px; }
     .bac { margin: 10px auto 0; max-width: 1180px; padding: 0 5vw; }
     .bac-entete { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }

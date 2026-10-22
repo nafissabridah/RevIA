@@ -21,16 +21,23 @@ public record ReviaProperties(
         @DefaultValue Essai essai,
         @DefaultValue Integrations integrations,
         @DefaultValue Offres offres,
-        @DefaultValue Paddle paddle) {
+        @DefaultValue Paddle paddle,
+        @DefaultValue GithubApp githubApp) {
 
     @ConstructorBinding
     public ReviaProperties {
     }
 
+    /** Constructeur historique (tests) : GitHub App désactivée. */
+    public ReviaProperties(Ai ai, Security security, Quotas quotas, Admin admin, Cors cors, boolean seedDemoData,
+                           Essai essai, Integrations integrations, Offres offres, Paddle paddle) {
+        this(ai, security, quotas, admin, cors, seedDemoData, essai, integrations, offres, paddle, GithubApp.inactive());
+    }
+
     /** Constructeur historique (tests) : essai public et intégrations avec leurs valeurs par défaut. */
     public ReviaProperties(Ai ai, Security security, Quotas quotas, Admin admin, Cors cors, boolean seedDemoData) {
         this(ai, security, quotas, admin, cors, seedDemoData, new Essai(true, 150, 3, 300), new Integrations(""),
-                new Offres(20, 200, 1000), Paddle.inactif());
+                new Offres(20, 200, 1000), Paddle.inactif(), GithubApp.inactive());
     }
 
     /**
@@ -186,6 +193,73 @@ public record ReviaProperties(
 
         public String apiBase() {
             return sandbox() ? "https://sandbox-api.paddle.com" : "https://api.paddle.com";
+        }
+    }
+
+    /**
+     * GitHub App « installer RevIA en un clic » : revue de chaque pull request sans fichier de workflow.
+     * Désactivée tant que {@code appId}, {@code privateKey}, {@code webhookSecret} et {@code slug} ne sont pas
+     * tous renseignés.
+     * <ul>
+     *   <li>{@code privateKey} : clé privée PEM de l'application (PKCS#1 « BEGIN RSA PRIVATE KEY » ou PKCS#8
+     *       « BEGIN PRIVATE KEY ») ; les « \n » littéraux (variable d'environnement sur une ligne) sont acceptés ;</li>
+     *   <li>{@code clientId} / {@code clientSecret} (facultatifs) : vérification OAuth que l'utilisateur qui relie
+     *       une installation y a bien accès. Sans eux, seule une installation récente et encore non reliée peut
+     *       être reliée ({@code fenetreLiaisonMinutes}) ;</li>
+     *   <li>{@code langue} / {@code metier} : langue des commentaires et pack métier appliqués aux revues ;</li>
+     *   <li>{@code maxFichiers} / {@code maxInline} : plafonds par pull request (coût et bruit maîtrisés).</li>
+     * </ul>
+     */
+    public record GithubApp(
+            @DefaultValue("") String appId,
+            @DefaultValue("") String privateKey,
+            @DefaultValue("") String webhookSecret,
+            @DefaultValue("") String slug,
+            @DefaultValue("https://api.github.com") String apiUrl,
+            @DefaultValue("https://github.com") String webUrl,
+            @DefaultValue("") String clientId,
+            @DefaultValue("") String clientSecret,
+            @DefaultValue("en") String langue,
+            @DefaultValue("") String metier,
+            @DefaultValue("20") int maxFichiers,
+            @DefaultValue("20") int maxInline,
+            @DefaultValue("30") int fenetreLiaisonMinutes) {
+
+        @ConstructorBinding
+        public GithubApp {
+            appId = appId == null ? "" : appId.trim();
+            privateKey = privateKey == null ? "" : privateKey.trim();
+            webhookSecret = webhookSecret == null ? "" : webhookSecret.trim();
+            slug = slug == null ? "" : slug.trim();
+            apiUrl = sansBarreFinale(apiUrl == null || apiUrl.isBlank() ? "https://api.github.com" : apiUrl.trim());
+            webUrl = sansBarreFinale(webUrl == null || webUrl.isBlank() ? "https://github.com" : webUrl.trim());
+            clientId = clientId == null ? "" : clientId.trim();
+            clientSecret = clientSecret == null ? "" : clientSecret.trim();
+            langue = langue == null || langue.isBlank() ? "en" : langue.trim();
+            metier = metier == null ? "" : metier.trim();
+        }
+
+        public static GithubApp inactive() {
+            return new GithubApp("", "", "", "", "", "", "", "", "en", "", 20, 20, 30);
+        }
+
+        /** Tous les paramètres obligatoires sont renseignés. */
+        public boolean actif() {
+            return !appId.isBlank() && !privateKey.isBlank() && !webhookSecret.isBlank() && !slug.isBlank();
+        }
+
+        /** Vérification OAuth de l'utilisateur lors de la liaison (client id + secret renseignés). */
+        public boolean oauthActif() {
+            return !clientId.isBlank() && !clientSecret.isBlank();
+        }
+
+        /** Page GitHub d'installation de l'application (vide si désactivée). */
+        public String urlInstallation() {
+            return actif() ? webUrl + "/apps/" + slug + "/installations/new" : "";
+        }
+
+        private static String sansBarreFinale(String url) {
+            return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
         }
     }
 

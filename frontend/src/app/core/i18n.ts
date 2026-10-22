@@ -6,6 +6,36 @@ import { langueCourante } from './langue.service';
  * Un texte absent du dictionnaire reste en français : rien ne casse si une traduction manque.
  */
 const EN: Record<string, string> = {
+  // ----- GitHub App : installer RevIA sur un dépôt en un clic
+  "GitHub": "GitHub",
+  "Installez RevIA sur vos dépôts en un clic : chaque pull request est revue automatiquement (synthèse et commentaires en ligne), sans fichier de workflow. Les revues comptent sur votre quota.": "Install RevIA on your repositories in one click: every pull request is reviewed automatically (summary and inline comments), with no workflow file. Reviews count against your quota.",
+  "Installer RevIA sur GitHub": "Install RevIA on GitHub",
+  "Compte GitHub": "GitHub account",
+  "Type": "Type",
+  "Reliée le": "Linked on",
+  "Organisation": "Organization",
+  "Délier": "Unlink",
+  "Aucune installation reliée pour l'instant.": "No linked installation yet.",
+  "Délier cette installation ? RevIA ne revoit plus ses pull requests ; l'application reste installée sur GitHub (Settings › Applications pour la désinstaller).": "Unlink this installation? RevIA will stop reviewing its pull requests; the app stays installed on GitHub (Settings › Applications to uninstall it).",
+  "Installation GitHub déliée.": "GitHub installation unlinked.",
+  "Liaison GitHub impossible": "Could not link GitHub",
+  "Retour aux paramètres": "Back to settings",
+  "Connexion de GitHub à RevIA…": "Connecting GitHub to RevIA…",
+  "Lien d'installation GitHub invalide.": "Invalid GitHub installation link.",
+  "Connectez-vous pour relier votre installation GitHub.": "Sign in to link your GitHub installation.",
+  "Installation GitHub reliée : vos pull requests seront revues automatiquement.": "GitHub installation linked: your pull requests will be reviewed automatically.",
+  "GitHub est momentanément injoignable. Réessayez dans un instant.": "GitHub is temporarily unreachable. Try again in a moment.",
+  "Cette installation GitHub est déjà reliée à un autre compte RevIA.": "This GitHub installation is already linked to another RevIA account.",
+  "Trop de pull requests en attente de revue. Réessayez plus tard.": "Too many pull requests waiting for review. Try again later.",
+  "L'application GitHub n'est pas configurée sur ce serveur.": "The GitHub app is not configured on this server.",
+  "Installation GitHub introuvable : installez l'application depuis Paramètres.": "GitHub installation not found: install the app from Settings.",
+  "Installation GitHub introuvable.": "GitHub installation not found.",
+  "Installation GitHub manquante.": "Missing GitHub installation.",
+  "Autorisation GitHub manquante : relancez l'installation depuis RevIA.": "Missing GitHub authorization: restart the installation from RevIA.",
+  "Votre compte GitHub n'a pas accès à cette installation.": "Your GitHub account has no access to this installation.",
+  "Installation trop ancienne pour être reliée : désinstallez puis réinstallez l'application GitHub depuis Paramètres.": "Installation too old to be linked: uninstall then reinstall the GitHub app from Settings.",
+  // ----- Page publique /demo (titre d'onglet ; les textes de la page sont dans pages/demo)
+  "Démo : des tests qui prouvent qu’ils marchent · RevIA": "Demo: tests that prove they work · RevIA",
   // ----- Offres, abonnement Paddle, RGPD et pages légales (v1.3)
   "CGU": "Terms",
   "Confidentialité": "Privacy",

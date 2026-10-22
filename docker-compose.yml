@@ -40,6 +40,14 @@ services:
       REVIA_PROMPT: ${REVIA_PROMPT:-classpath:prompts/revue-system.st}   # revue-system.en.st pour des rapports en anglais
       REVIA_ESSAI_ACTIF: ${REVIA_ESSAI_ACTIF:-true}
       REVIA_ESSAI_JOUR: ${REVIA_ESSAI_JOUR:-300}
+      # GitHub App (docs/GITHUB-APP.md) : désactivée tant que ces 4 valeurs sont vides
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
+      GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET:-}
+      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
+      GITHUB_API_URL: ${GITHUB_API_URL:-https://api.github.com}
+      GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID:-}
+      GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET:-}
     depends_on:
       db:
         condition: service_healthy

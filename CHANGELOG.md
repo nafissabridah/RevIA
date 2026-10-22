@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.7.0 – 2026-10-22
+### Added
+- **Code that contradicts its own documentation, proven on your runner** (CI script, proven tests): when the AI
+  sees that the code breaks its docstring / comment (e.g. "−5 € from 50 €" but `total > 50`), it also writes a test
+  of the **documented** behaviour. RevIA runs it in your CI: only an assertion failure is reported (a green doc test
+  means the AI was wrong, a broken one proves nothing), with the observed output, and the test is always deleted.
+  The line is located by RevIA from the quoted code, not taken from the AI (seen live: "line 18" for line 25).
+  Verified with free Gemini on the demo repository: `AssertionError: 50.0 != 45.0`, kept tests green, 100 % mutation.
+- **GitHub App: install RevIA on a repository in one click**, no workflow file (`docs/GITHUB-APP.md`, manifest
+  included). Signed webhook `POST /api/github/webhook` (HMAC-SHA256, idempotent, answered in 202, bounded pool),
+  RS256 App JWT and cached installation tokens, summary comment + inline comments with one-click suggestions (same
+  markers as the CI script, never posted twice), drafts skipped, quota / plan / secret masking of the web app,
+  "quota reached" comment. Linking page `/github/installe` and a GitHub card in Settings; the link is proven by the
+  GitHub OAuth code (`GITHUB_APP_CLIENT_ID` / `_SECRET`) or limited to an installation created < 30 min ago and not
+  yet linked. Off until `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`, `GITHUB_APP_SLUG` are
+  set. Migration V5.
+- **Public demo page `/demo`** (FR/EN, no account, no AI call): the real proven-tests run with free Gemini — source,
+  kept tests, PR comment as produced, pipeline steps, an illustrative mutant, honest notes (an earlier run scored 86 %,
+  Flash overloaded → Flash-Lite). Linked from the landing page.
+- `docs/LANCEMENT.md`: go-live (Render, Vercel, keys), Paddle setup, pilot offer and ready-to-send messages (FR/EN).
+### Changed
+- Legal pages filled in for a personal project: publisher Saleh (individual), Tunisian law, INPDP (and EU
+  authorities for EU users), Render and Vercel listed as hosts and subprocessors. The "to be validated by a lawyer"
+  banner stays until `valideParJuriste` is set.
+- GDPR export now includes the linked GitHub installations (deleted with the account).
+- `__pycache__` is no longer tracked by git.
+- Tests: backend 122 → 132, frontend 45 → 55, CI script 7 → 10.
+
 ## 1.6.0 – 2026-10-22
 ### Added: project traceability (requirement → criterion → code → test → QA verdict)
 - **Projects** (page "Projets (traçabilité)", routes `/projets` and `/projets/:id`): one screen per project shows the

@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
 import { TPipe } from '../../core/i18n';
 import { PaddleService } from '../../core/paddle.service';
+import { installationEnAttente } from '../../core/github';
 
 /** S'authentifier / S'inscrire (cas d'utilisation « S'inscrire » étend « S'authentifier »). */
 @Component({
@@ -187,6 +188,9 @@ export class AuthComponent implements OnInit {
       next: (r) => {
         if (r.utilisateur.role === 'ADMIN') {
           this.router.navigate(['/admin']);
+        } else if (installationEnAttente()) {
+          // Arrivée depuis l'installation de la GitHub App : relier l'installation au compte
+          this.router.navigate(['/github/installe']);
         } else if (this.offre()) {
           // Paramètres › Abonnement ouvre le paiement Paddle de l'offre choisie
           this.router.navigate(['/parametres'], { queryParams: { offre: this.offre() } });

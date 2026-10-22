@@ -61,7 +61,11 @@ public class AssistantIA {
                 Compare chaque borne du code à sa documentation (docstring, commentaire, nom) : « à partir de 50 »,
                 « au moins », « at least », « minimum » veulent dire >= ; « jusqu'à » / « up to » veut dire <=. Si le code
                 ne respecte pas la documentation (ex. « à partir de 50 » mais `> 50`), c'est un bug probable : ne teste
-                pas cette valeur limite, signale-la dans « Bugs probables » avec la ligne et le correctif.
+                pas cette valeur limite dans le bloc de tests. À la place, ajoute À LA FIN une section
+                « ### Contradictions documentation / code » : une puce par contradiction (ligne, ce que dit la
+                documentation, ce que fait le code), puis UN second bloc de code complet (même framework, mêmes imports)
+                dont les tests vérifient le comportement DOCUMENTÉ (ils échoueront sur le code actuel : c'est la preuve).
+                N'ajoute cette section que pour une contradiction réelle, jamais par précaution.
                 Structure : une phrase d'introduction, un seul bloc de code complet, puis une liste « Ce qui est testé ».
                 """),
         DOCUMENTATION("documentation", "Documentation automatique", """

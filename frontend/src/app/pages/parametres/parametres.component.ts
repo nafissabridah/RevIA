@@ -7,7 +7,7 @@ import { AuthService } from '../../core/auth.service';
 import { messageErreur } from '../../core/http';
 import { LANGUES_IA, LangueIa, LangueService } from '../../core/langue.service';
 import { MARQUE } from '../../core/marque';
-import { Abonnement, JetonApi, Plan, SystemeInfo } from '../../core/models';
+import { Abonnement, InstallationGithub, JetonApi, Plan, SystemeInfo } from '../../core/models';
 import { NotifService } from '../../core/notif.service';
 import { TPipe, tr } from '../../core/i18n';
 import { PaddleService } from '../../core/paddle.service';
@@ -101,6 +101,26 @@ import { PaddleService } from '../../core/paddle.service';
                 <a [href]="'mailto:' + marque.contact + '?subject=RevIA%20Pro'">{{ marque.contact }}</a></p>
             }
           </div>
+
+          @if (systeme()?.githubActif && systeme()?.githubInstallUrl) {
+            <div class="carte bloc large">
+              <h2>{{ 'GitHub' | t }}</h2>
+              <p class="info">{{ 'Installez RevIA sur vos dépôts en un clic : chaque pull request est revue automatiquement (synthèse et commentaires en ligne), sans fichier de workflow. Les revues comptent sur votre quota.' | t }}</p>
+              <a class="btn primaire" [href]="systeme()?.githubInstallUrl">{{ 'Installer RevIA sur GitHub' | t }}</a>
+              @if (installationsGithub().length) {
+                <table class="jetons">
+                  <thead><tr><th>{{ 'Compte GitHub' | t }}</th><th>{{ 'Type' | t }}</th><th>{{ 'Reliée le' | t }}</th><th></th></tr></thead>
+                  <tbody>
+                    @for (i of installationsGithub(); track i.installationId) {
+                      <tr><td><b>{{ i.compte }}</b></td><td>{{ (i.typeCompte === 'Organization' ? 'Organisation' : 'Utilisateur') | t }}</td>
+                        <td>{{ i.lieLe | date: 'dd/MM/yyyy' }}</td>
+                        <td><button class="btn danger-texte" type="button" (click)="delierGithub(i.installationId)">{{ 'Délier' | t }}</button></td></tr>
+                    }
+                  </tbody>
+                </table>
+              } @else { <p class="info">{{ "Aucune installation reliée pour l'instant." | t }}</p> }
+            </div>
+          }
 
           <div class="carte bloc large">
             <h2>{{ 'Intégration CI / API' | t }}</h2>
@@ -216,6 +236,7 @@ export class ParametresComponent implements OnInit {
 
   readonly systeme = signal<SystemeInfo | null>(null);
   readonly jetons = signal<JetonApi[]>([]);
+  readonly installationsGithub = signal<InstallationGithub[]>([]);
   readonly nomJeton = signal('GitHub Actions');
   readonly nouveauJeton = signal<string | null>(null);
   readonly origine = location.origin;
@@ -258,7 +279,12 @@ jobs:
 
   ngOnInit(): void {
     this.profil.reset({ nom: this.auth.utilisateur()?.nom ?? '' });
-    this.api.systeme().subscribe((s) => this.systeme.set(s));
+    this.api.systeme().subscribe((s) => {
+      this.systeme.set(s);
+      if (s.githubActif && this.auth.estDeveloppeur()) {
+        this.api.installationsGithub().subscribe({ next: (l) => this.installationsGithub.set(l), error: () => this.installationsGithub.set([]) });
+      }
+    });
     if (this.auth.estDeveloppeur()) {
       this.api.jetons().subscribe((j) => this.jetons.set(j));
       this.chargerAbonnement();
@@ -349,6 +375,19 @@ jobs:
       next: () => {
         this.jetons.update((l) => l.filter((j) => j.id !== id));
         this.notif.succes('Jeton révoqué : il ne fonctionne plus.');
+      },
+      error: (e) => this.notif.erreur(messageErreur(e)),
+    });
+  }
+
+  delierGithub(id: number): void {
+    if (!confirm(tr("Délier cette installation ? RevIA ne revoit plus ses pull requests ; l'application reste installée sur GitHub (Settings › Applications pour la désinstaller)."))) {
+      return;
+    }
+    this.api.delierGithub(id).subscribe({
+      next: () => {
+        this.installationsGithub.update((l) => l.filter((i) => i.installationId !== id));
+        this.notif.succes('Installation GitHub déliée.');
       },
       error: (e) => this.notif.erreur(messageErreur(e)),
     });

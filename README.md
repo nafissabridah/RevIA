@@ -5,6 +5,11 @@
 > Application web (Angular + Spring Boot + PostgreSQL) où l'on colle son code et où l'IA le relit comme un développeur senior :
 > elle détecte les bugs, les mauvaises pratiques et les failles de sécurité, puis propose une **correction expliquée**.
 
+> **Nouveau (v1.7)** : installation **en un clic** sur GitHub (GitHub App, `docs/GITHUB-APP.md`) ; RevIA **prouve**
+> sur votre CI les endroits où le code contredit sa documentation (un test du comportement documenté échoue
+> réellement, puis est supprimé) ; page publique **/demo** avec un vrai run (Gemini gratuit, 100 % de mutation) ;
+> guide de lancement et kit pilotes : `docs/LANCEMENT.md`.
+
 > **Nouveau (v1.6) — traçabilité par projet** : page **Projets** où l'on colle ses user stories (ou la sortie de la
 > rédaction d'exigences) ; les critères d'acceptation sont extraits automatiquement, vérifiés sur le diff d'une PR
 > (statut, preuve, test manquant), puis validés ou rejetés par le QA. Couverture du projet et **matrice de traçabilité
